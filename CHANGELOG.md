@@ -14,6 +14,14 @@ Here we write upgrading notes for brands. It's a team effort to make them as str
 
 ### Fixed
 
+# [1.3.0] - 2026-02-20
+
+### Changed
+
+- refactor: consolidate Cargo.toml fields using workspace inheritance
+- Update rust edition to 2024
+- Bump tdlib version to 1.8.61
+
 # [1.2.0] - 2026-01-31
 
 ### Added

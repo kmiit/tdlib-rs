@@ -6,7 +6,7 @@ on:
 
 env:
     TDLIB_VERSION: "1.8.61"
-    TDLIB_COMMIT: 11e254af695060d8890024dd7faa1cc2d6685ef8
+    TDLIB_COMMIT: 6d509061574d684117f74133056aa43df89022fc
 
 jobs:
     build-linux:

@@ -122,10 +122,6 @@ fn generic_build() {
         "tdnet",
         "tdsqlite",
         "tdutils",
-
-        "ssl",
-        "crypto",
-        "z",
     ];
 
     #[cfg(feature = "static")]
@@ -195,6 +191,18 @@ fn generic_build() {
         {
             println!("cargo:rustc-link-lib=c++");
             println!("cargo:rustc-link-lib=c++abi");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
+        }
+        #[cfg(any(
+            all(target_os = "windows", target_arch = "x86_64"),
+            all(target_os = "windows", target_arch = "aarch64")
+        ))]
+        {
+            println!("cargo:rustc-link-lib=static=libssl");
+            println!("cargo:rustc-link-lib=static=libcrypto");
+            println!("cargo:rustc-link-lib=static=zlib");
         }
     }
     #[cfg(not(feature = "static"))]

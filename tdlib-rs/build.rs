@@ -203,6 +203,10 @@ fn generic_build() {
             println!("cargo:rustc-link-lib=static=libssl");
             println!("cargo:rustc-link-lib=static=libcrypto");
             println!("cargo:rustc-link-lib=static=zlib");
+            // Windows system libraries required by TDLib
+            println!("cargo:rustc-link-lib=psapi");
+            println!("cargo:rustc-link-lib=Normaliz");
+            println!("cargo:rustc-link-lib=Crypt32");
         }
     }
     #[cfg(not(feature = "static"))]

@@ -83,7 +83,8 @@ fn generic_build() {
     let prefix = format!("{out_dir}/tdlib");
     let include_dir = format!("{prefix}/include");
     let lib_dir = format!("{prefix}/lib");
-    let lib_path = {
+    #[cfg(not(feature = "static"))]
+    let dynamic_lib_path = {
         #[cfg(any(
             all(target_os = "linux", target_arch = "x86_64"),
             all(target_os = "linux", target_arch = "aarch64")
@@ -107,14 +108,53 @@ fn generic_build() {
         }
     };
 
-    if !std::path::PathBuf::from(lib_path.clone()).exists() {
-        panic!("tdjson shared library not found at {lib_path}");
+    #[cfg(feature = "static")]
+    let (link_name, static_lib_path) = {
+        #[cfg(any(
+            all(target_os = "linux", target_arch = "x86_64"),
+            all(target_os = "linux", target_arch = "aarch64"),
+            all(target_os = "macos", target_arch = "x86_64"),
+            all(target_os = "macos", target_arch = "aarch64")
+        ))]
+        {
+            let static_lib_path = format!("{lib_dir}/libtdjson_static.a");
+            if std::path::PathBuf::from(static_lib_path.clone()).exists() {
+                ("tdjson_static", static_lib_path)
+            } else {
+                let fallback = format!("{lib_dir}/libtdjson.a");
+                ("tdjson", fallback)
+            }
+        }
+        #[cfg(any(
+            all(target_os = "windows", target_arch = "x86_64"),
+            all(target_os = "windows", target_arch = "aarch64")
+        ))]
+        {
+            let static_lib_path = format!(r"{lib_dir}\tdjson_static.lib");
+            if std::path::PathBuf::from(static_lib_path.clone()).exists() {
+                ("tdjson_static", static_lib_path)
+            } else {
+                let fallback = format!(r"{lib_dir}\tdjson.lib");
+                ("tdjson", fallback)
+            }
+        }
+    };
+
+    #[cfg(feature = "static")]
+    if !std::path::PathBuf::from(static_lib_path.clone()).exists() {
+        panic!("tdjson static library not found at {static_lib_path}");
+    }
+
+    #[cfg(not(feature = "static"))]
+    if !std::path::PathBuf::from(dynamic_lib_path.clone()).exists() {
+        panic!("tdjson shared library not found at {dynamic_lib_path}");
     }
 
     #[cfg(any(
         all(target_os = "windows", target_arch = "x86_64"),
         all(target_os = "windows", target_arch = "aarch64")
     ))]
+    #[cfg(not(feature = "static"))]
     {
         let bin_dir = format!(r"{prefix}\bin");
         println!("cargo:rustc-link-search=native={bin_dir}");
@@ -122,7 +162,11 @@ fn generic_build() {
 
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:include={include_dir}");
+    #[cfg(feature = "static")]
+    println!("cargo:rustc-link-lib=static={link_name}");
+    #[cfg(not(feature = "static"))]
     println!("cargo:rustc-link-lib=dylib=tdjson");
+    #[cfg(not(feature = "static"))]
     println!("cargo:rustc-link-arg=-Wl,-rpath,{lib_dir}");
 }
 
@@ -226,6 +270,10 @@ fn main() -> std::io::Result<()> {
     #[cfg(all(feature = "pkg-config", feature = "download-tdlib"))]
     compile_error!(
         "feature \"pkg-config\" and feature \"download-tdlib\" cannot be enabled at the same time"
+    );
+    #[cfg(all(feature = "static", feature = "pkg-config"))]
+    compile_error!(
+        "feature \"static\" and feature \"pkg-config\" cannot be enabled at the same time"
     );
 
     println!("cargo:rerun-if-changed=build.rs");

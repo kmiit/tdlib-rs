@@ -20,6 +20,8 @@ tdjson = "1.8.61"
 [features]
 # The default feature build the library using the local tdlib library
 default = []
+# This feature is used to build the library by statically linking tdjson
+static = []
 # This feature is used to enable the functions only available to the Telegram bots
 bots-only-api = []
 # This feature is used to build the documentation preventing linking to the tdjson library

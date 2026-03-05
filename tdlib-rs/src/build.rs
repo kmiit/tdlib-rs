@@ -305,21 +305,18 @@ fn generic_build(lib_path: Option<String>) {
         {
             println!("cargo:rustc-link-lib=c++");
             println!("cargo:rustc-link-lib=c++abi");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
         }
         #[cfg(any(
             all(target_os = "windows", target_arch = "x86_64"),
             all(target_os = "windows", target_arch = "aarch64")
         ))]
         {
-            // Link OpenSSL and zlib for Windows static build
-            println!("cargo:rustc-link-lib=static=libssl");
-            println!("cargo:rustc-link-lib=static=libcrypto");
-            println!("cargo:rustc-link-lib=static=zlibstatic");
-            // Windows system libraries required by OpenSSL
-            println!("cargo:rustc-link-lib=crypt32");
-            println!("cargo:rustc-link-lib=ws2_32");
-            println!("cargo:rustc-link-lib=advapi32");
-            println!("cargo:rustc-link-lib=user32");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
         }
     }
     #[cfg(not(feature = "static"))]

@@ -21,10 +21,11 @@ This is an improved version of the [tdlib-rs](https://github.com/paper-plane-dev
 1. It is cross-platform, it works on Windows, Linux and MacOS.
 2. Not required `tdlib` to be compiled and installed on the system.
 3. Not required `pkg-config` to build the library and associated exported variables.
-4. Three different ways to build the library:
+4. Four different ways to build the library:
     - `download-tdlib`: download the precompiled library from the GitHub releases.
     - `local-tdlib`: use the `tdlib` installed on the system.
     - `pkg-config`: use the `pkg-config` to build the library.
+    - `static`: statically link `tdjson` (to be used with `download-tdlib` or `local-tdlib`).
 5. It is possible to download the `tdlib` library from the GitHub releases.
 
 ## Information
@@ -127,6 +128,17 @@ export LD_LIBRARY_PATH=$HOME/lib/tdlib/lib/:$LD_LIBRARY_PATH
 
 This feature skip the linking of the library and only generate the code of `generated.rs`.
 Is used only for testing.
+
+### static
+
+This feature enables static linking for `tdjson`, so the final binary does not require `tdjson` to be installed in the target system runtime.
+
+Use it together with `download-tdlib` or `local-tdlib`:
+
+```toml
+[dependencies]
+tdlib-rs = { version = "...", features = ["download-tdlib", "static"] }
+```
 
 ### bots-only-api
 

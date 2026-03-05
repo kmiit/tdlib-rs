@@ -179,6 +179,35 @@ fn generic_build() {
     for link_name in &static_libs {
         println!("cargo:rustc-link-lib=static={link_name}");
     }
+    #[cfg(feature = "static")]
+    {
+        // Link C++ standard library for static tdlib
+        #[cfg(any(
+            all(target_os = "linux", target_arch = "x86_64"),
+            all(target_os = "linux", target_arch = "aarch64"),
+            all(target_os = "macos", target_arch = "x86_64"),
+            all(target_os = "macos", target_arch = "aarch64")
+        ))]
+        {
+            println!("cargo:rustc-link-lib=c++");
+            println!("cargo:rustc-link-lib=c++abi");
+        }
+        #[cfg(any(
+            all(target_os = "windows", target_arch = "x86_64"),
+            all(target_os = "windows", target_arch = "aarch64")
+        ))]
+        {
+            // Link OpenSSL and zlib for Windows static build
+            println!("cargo:rustc-link-lib=static=libssl");
+            println!("cargo:rustc-link-lib=static=libcrypto");
+            println!("cargo:rustc-link-lib=static=zlibstatic");
+            // Windows system libraries required by OpenSSL
+            println!("cargo:rustc-link-lib=crypt32");
+            println!("cargo:rustc-link-lib=ws2_32");
+            println!("cargo:rustc-link-lib=advapi32");
+            println!("cargo:rustc-link-lib=user32");
+        }
+    }
     #[cfg(not(feature = "static"))]
     println!("cargo:rustc-link-lib=dylib=tdjson");
     #[cfg(not(feature = "static"))]

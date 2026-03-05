@@ -14,6 +14,12 @@ Here we write upgrading notes for brands. It's a team effort to make them as str
 
 ### Fixed
 
+# [1.3.1] -2026-03-05
+
+### Added
+
+Support static link of tdjson.
+
 # [1.3.0] - 2026-02-19
 
 ### Added

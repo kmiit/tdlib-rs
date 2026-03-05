@@ -109,40 +109,56 @@ fn generic_build() {
     };
 
     #[cfg(feature = "static")]
-    let (link_name, static_lib_path) = {
-        #[cfg(any(
-            all(target_os = "linux", target_arch = "x86_64"),
-            all(target_os = "linux", target_arch = "aarch64"),
-            all(target_os = "macos", target_arch = "x86_64"),
-            all(target_os = "macos", target_arch = "aarch64")
-        ))]
-        {
-            let static_lib_path = format!("{lib_dir}/libtdjson_static.a");
-            if std::path::PathBuf::from(static_lib_path.clone()).exists() {
-                ("tdjson_static", static_lib_path)
-            } else {
-                let fallback = format!("{lib_dir}/libtdjson.a");
-                ("tdjson", fallback)
-            }
-        }
-        #[cfg(any(
-            all(target_os = "windows", target_arch = "x86_64"),
-            all(target_os = "windows", target_arch = "aarch64")
-        ))]
-        {
-            let static_lib_path = format!(r"{lib_dir}\tdjson_static.lib");
-            if std::path::PathBuf::from(static_lib_path.clone()).exists() {
-                ("tdjson_static", static_lib_path)
-            } else {
-                let fallback = format!(r"{lib_dir}\tdjson.lib");
-                ("tdjson", fallback)
-            }
-        }
-    };
+    let static_libs = [
+        "tdactor",
+        "tdapi",
+        "tdclient",
+        "tdcore",
+        "tddb",
+        "tde2e",
+        "tdjson",
+        "tdjson_private",
+        "tdjson_static",
+        "tdmtproto",
+        "tdnet",
+        "tdsqlite",
+        "tdutils",
+    ];
 
     #[cfg(feature = "static")]
-    if !std::path::PathBuf::from(static_lib_path.clone()).exists() {
-        panic!("tdjson static library not found at {static_lib_path}");
+    let missing_static_libs: Vec<String> = static_libs
+        .iter()
+        .filter_map(|name| {
+            #[cfg(any(
+                all(target_os = "windows", target_arch = "x86_64"),
+                all(target_os = "windows", target_arch = "aarch64")
+            ))]
+            let path = format!(r"{lib_dir}\{name}.lib");
+
+            #[cfg(any(
+                all(target_os = "linux", target_arch = "x86_64"),
+                all(target_os = "linux", target_arch = "aarch64"),
+                all(target_os = "macos", target_arch = "x86_64"),
+                all(target_os = "macos", target_arch = "aarch64"),
+                all(target_os = "android", target_arch = "x86_64"),
+                all(target_os = "android", target_arch = "aarch64")
+            ))]
+            let path = format!("{lib_dir}/lib{name}.a");
+
+            if std::path::PathBuf::from(path.clone()).exists() {
+                None
+            } else {
+                Some(path)
+            }
+        })
+        .collect();
+
+    #[cfg(feature = "static")]
+    if !missing_static_libs.is_empty() {
+        panic!(
+            "required TDLib static libraries not found: {}",
+            missing_static_libs.join(", ")
+        );
     }
 
     #[cfg(not(feature = "static"))]
@@ -163,7 +179,9 @@ fn generic_build() {
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:include={include_dir}");
     #[cfg(feature = "static")]
-    println!("cargo:rustc-link-lib=static={link_name}");
+    for link_name in &static_libs {
+        println!("cargo:rustc-link-lib=static={link_name}");
+    }
     #[cfg(not(feature = "static"))]
     println!("cargo:rustc-link-lib=dylib=tdjson");
     #[cfg(not(feature = "static"))]

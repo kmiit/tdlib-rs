@@ -116,7 +116,6 @@ fn generic_build() {
         "tdcore",
         "tddb",
         "tde2e",
-        "tdjson",
         "tdjson_private",
         "tdjson_static",
         "tdmtproto",
@@ -140,8 +139,6 @@ fn generic_build() {
                 all(target_os = "linux", target_arch = "aarch64"),
                 all(target_os = "macos", target_arch = "x86_64"),
                 all(target_os = "macos", target_arch = "aarch64"),
-                all(target_os = "android", target_arch = "x86_64"),
-                all(target_os = "android", target_arch = "aarch64")
             ))]
             let path = format!("{lib_dir}/lib{name}.a");
 

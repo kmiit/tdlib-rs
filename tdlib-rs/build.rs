@@ -82,8 +82,19 @@ fn generic_build() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let prefix = format!("{out_dir}/tdlib");
     let include_dir = format!("{prefix}/include");
-    let lib_dir = format!("{prefix}/lib");
-    let lib_path = {
+    let lib_dir = {
+        #[cfg(all(feature = "static", target_os = "windows"))]
+        {
+            format!("{prefix}/lib/static")
+        }
+        #[cfg(not(all(feature = "static", target_os = "windows")))]
+        {
+            format!("{prefix}/lib")
+        }
+    };
+
+    #[cfg(not(feature = "static"))]
+    let dynamic_lib_path = {
         #[cfg(any(
             all(target_os = "linux", target_arch = "x86_64"),
             all(target_os = "linux", target_arch = "aarch64")
@@ -107,14 +118,66 @@ fn generic_build() {
         }
     };
 
-    if !std::path::PathBuf::from(lib_path.clone()).exists() {
-        panic!("tdjson shared library not found at {lib_path}");
+    #[cfg(feature = "static")]
+    let static_libs = [
+        "tdactor",
+        "tdapi",
+        "tdclient",
+        "tdcore",
+        "tddb",
+        "tde2e",
+        "tdjson_private",
+        "tdjson_static",
+        "tdmtproto",
+        "tdnet",
+        "tdsqlite",
+        "tdutils",
+    ];
+
+    #[cfg(feature = "static")]
+    let missing_static_libs: Vec<String> = static_libs
+        .iter()
+        .filter_map(|name| {
+            #[cfg(any(
+                all(target_os = "windows", target_arch = "x86_64"),
+                all(target_os = "windows", target_arch = "aarch64")
+            ))]
+            let path = format!(r"{lib_dir}\{name}.lib");
+
+            #[cfg(any(
+                all(target_os = "linux", target_arch = "x86_64"),
+                all(target_os = "linux", target_arch = "aarch64"),
+                all(target_os = "macos", target_arch = "x86_64"),
+                all(target_os = "macos", target_arch = "aarch64"),
+            ))]
+            let path = format!("{lib_dir}/lib{name}.a");
+
+            if std::path::PathBuf::from(path.clone()).exists() {
+                None
+            } else {
+                Some(path)
+            }
+        })
+        .collect();
+
+    #[cfg(feature = "static")]
+    if !missing_static_libs.is_empty() {
+        panic!(
+            "required TDLib static libraries not found: {}",
+            missing_static_libs.join(", ")
+        );
+    }
+
+    #[cfg(not(feature = "static"))]
+    if !std::path::PathBuf::from(dynamic_lib_path.clone()).exists() {
+        panic!("tdjson shared library not found at {dynamic_lib_path}");
     }
 
     #[cfg(any(
         all(target_os = "windows", target_arch = "x86_64"),
         all(target_os = "windows", target_arch = "aarch64")
     ))]
+    #[cfg(not(feature = "static"))]
     {
         let bin_dir = format!(r"{prefix}\bin");
         println!("cargo:rustc-link-search=native={bin_dir}");
@@ -122,7 +185,46 @@ fn generic_build() {
 
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:include={include_dir}");
+    #[cfg(feature = "static")]
+    for link_name in &static_libs {
+        println!("cargo:rustc-link-lib=static={link_name}");
+    }
+    #[cfg(feature = "static")]
+    {
+        // Link C++ standard library for static tdlib
+        #[cfg(any(
+            all(target_os = "linux", target_arch = "x86_64"),
+            all(target_os = "linux", target_arch = "aarch64"),
+            all(target_os = "macos", target_arch = "x86_64"),
+            all(target_os = "macos", target_arch = "aarch64")
+        ))]
+        {
+            println!("cargo:rustc-link-lib=c++");
+            println!("cargo:rustc-link-lib=c++abi");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
+        }
+        #[cfg(any(
+            all(target_os = "windows", target_arch = "x86_64"),
+            all(target_os = "windows", target_arch = "aarch64")
+        ))]
+        {
+            println!("cargo:rustc-link-lib=static=libssl");
+            println!("cargo:rustc-link-lib=static=libcrypto");
+            println!("cargo:rustc-link-lib=static=zlib");
+            // Windows system libraries required by TDLib
+            println!("cargo:rustc-link-lib=psapi");
+            println!("cargo:rustc-link-lib=Normaliz");
+            println!("cargo:rustc-link-lib=Crypt32");
+            // Windows system libraries required by OpenSSL (libcrypto)
+            println!("cargo:rustc-link-lib=advapi32");
+            println!("cargo:rustc-link-lib=user32");
+        }
+    }
+    #[cfg(not(feature = "static"))]
     println!("cargo:rustc-link-lib=dylib=tdjson");
+    #[cfg(not(feature = "static"))]
     println!("cargo:rustc-link-arg=-Wl,-rpath,{lib_dir}");
 }
 
@@ -163,7 +265,11 @@ fn download_tdlib() {
     let zip_path = format!("{}.zip", &tdlib_dir);
 
     // Create the request
-    let response = reqwest::blocking::get(&url).unwrap();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .unwrap();
+    let response = client.get(&url).send().unwrap();
 
     // Check if the response status is successful
     if response.status().is_success() {
@@ -226,6 +332,10 @@ fn main() -> std::io::Result<()> {
     #[cfg(all(feature = "pkg-config", feature = "download-tdlib"))]
     compile_error!(
         "feature \"pkg-config\" and feature \"download-tdlib\" cannot be enabled at the same time"
+    );
+    #[cfg(all(feature = "static", feature = "pkg-config"))]
+    compile_error!(
+        "feature \"static\" and feature \"pkg-config\" cannot be enabled at the same time"
     );
 
     println!("cargo:rerun-if-changed=build.rs");

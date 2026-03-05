@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm]
-        feature: [local-tdlib, download-tdlib, pkg-config, docs]
+        feature: [local-tdlib, download-tdlib, pkg-config, docs, "local-tdlib,static", "download-tdlib,static"]
 
     runs-on: ${{ matrix.os }}
 
@@ -37,7 +37,7 @@ jobs:
           sudo apt update
           sudo apt install libc++-dev libc++abi-dev
       - name: Download TDLib
-        if:  matrix.feature == 'local-tdlib' || matrix.feature == 'pkg-config'
+        if:  contains(matrix.feature, 'local-tdlib') || contains(matrix.feature, 'pkg-config')
         run: |
           gh release download --pattern ${{ runner.arch == 'ARM64' && 'tdlib-*-linux-aarch64.zip' || 'tdlib-*-linux-x86_64.zip' }}
           unzip -q *.zip -d .
@@ -47,7 +47,7 @@ jobs:
           echo "PKG_CONFIG_PATH=$(pwd)/tdlib/lib/pkgconfig" >> $GITHUB_ENV
           echo "LD_LIBRARY_PATH=$(pwd)/tdlib/lib" >> $GITHUB_ENV
       - name: Set local-tdlib environment variables
-        if: matrix.feature == 'local-tdlib'
+        if: contains(matrix.feature, 'local-tdlib')
         run: echo "LOCAL_TDLIB_PATH=$(pwd)/tdlib/" >> $GITHUB_ENV
       - name: Run cargo build
         run: cargo build --verbose --features ${{ matrix.feature }}

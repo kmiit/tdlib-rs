@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, windows-11-arm]
-        feature: [local-tdlib, download-tdlib, pkg-config, docs]
+        feature: [local-tdlib, download-tdlib, pkg-config, docs, "local-tdlib,static", "download-tdlib,static"]
 
     runs-on: ${{ matrix.os }}
 
@@ -33,7 +33,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Download TDLib
-        if:  matrix.feature == 'local-tdlib' || matrix.feature == 'pkg-config'
+        if:  contains(matrix.feature, 'local-tdlib') || contains(matrix.feature, 'pkg-config')
         run: |
           gh release download --pattern ${{ runner.arch == 'ARM64' && 'tdlib-*-windows-aarch64.zip' || 'tdlib-*-windows-x86_64.zip' }}
           unzip -q *.zip -d .
@@ -60,7 +60,7 @@ jobs:
           echo "$((Get-Item .).FullName)\tdlib\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
         shell: pwsh
       - name: Set local-tdlib environment variables
-        if: matrix.feature == 'local-tdlib'
+        if: contains(matrix.feature, 'local-tdlib')
         run: echo "LOCAL_TDLIB_PATH=$((Get-Item .).FullName)\tdlib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         shell: pwsh
       - name: Run cargo build

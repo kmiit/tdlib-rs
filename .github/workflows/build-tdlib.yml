@@ -38,6 +38,14 @@ jobs:
                   cd build
                   CXXFLAGS="-stdlib=libc++" CC=/usr/bin/clang-18 CXX=/usr/bin/clang++-18 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
                   cmake --build . --target install
+            - name: Copy OpenSSL and zlib static libraries
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  mkdir -p ./td/tdlib/lib
+                  # Copy static libraries
+                  cp /usr/lib/*/libssl.a ./td/tdlib/lib/ || cp /usr/lib/libssl.a ./td/tdlib/lib/ || true
+                  cp /usr/lib/*/libcrypto.a ./td/tdlib/lib/ || cp /usr/lib/libcrypto.a ./td/tdlib/lib/ || true
+                  cp /usr/lib/*/libz.a ./td/tdlib/lib/ || cp /usr/lib/libz.a ./td/tdlib/lib/ || true
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -70,20 +78,32 @@ jobs:
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                  brew install gperf openssl
+                  brew install gperf openssl zlib
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
                   rm -rf build
                   mkdir build
                   cd build
+                  OPENSSL_DIR=$(brew --prefix openssl)
+                  ZLIB_DIR=$(brew --prefix zlib)
                   cmake \
                     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
                     -DCMAKE_BUILD_TYPE=Release \
-                    -DOPENSSL_ROOT_DIR=${{ runner.arch == 'ARM64' && '/opt/homebrew/opt/openssl/' || '/usr/local/opt/openssl/' }} \
+                    -DOPENSSL_ROOT_DIR=$OPENSSL_DIR \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                     ..
                   cmake --build . --target install
+            - name: Copy OpenSSL and zlib static libraries
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  mkdir -p ./td/tdlib/lib
+                  OPENSSL_DIR=$(brew --prefix openssl)
+                  ZLIB_DIR=$(brew --prefix zlib)
+                  # Copy OpenSSL and zlib static libraries
+                  cp $OPENSSL_DIR/lib/libssl.a ./td/tdlib/lib/ || true
+                  cp $OPENSSL_DIR/lib/libcrypto.a ./td/tdlib/lib/ || true
+                  cp $ZLIB_DIR/lib/libz.a ./td/tdlib/lib/ || true
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -125,10 +145,12 @@ jobs:
                     ./bootstrap-vcpkg.bat
                     ./vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows
                     CMAKE_ARCH="x64"
+                    VCPKG_TRIPLET="x64-windows"
                   elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
                     ./bootstrap-vcpkg.bat
                     ./vcpkg.exe install gperf:arm64-windows openssl:arm64-windows zlib:arm64-windows
                     CMAKE_ARCH="ARM64"
+                    VCPKG_TRIPLET="arm64-windows"
                   else
                     echo "Unsupported architecture: $RUNNER_ARCH"
                     exit 1
@@ -139,6 +161,18 @@ jobs:
                   cd build
                   cmake -A "$CMAKE_ARCH" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake ..
                   cmake --build . --target install --config Release
+              shell: bash
+            - name: Copy OpenSSL and zlib static libraries from vcpkg
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  if [[ "$RUNNER_ARCH" == "X64" ]]; then
+                    VCPKG_TRIPLET="x64-windows"
+                  else
+                    VCPKG_TRIPLET="arm64-windows"
+                  fi
+                  mkdir -p ./td/tdlib/lib
+                  # Copy OpenSSL and zlib libraries from vcpkg
+                  cp ./td/vcpkg/installed/$VCPKG_TRIPLET/lib/*.lib ./td/tdlib/lib/ || true
               shell: bash
             - name: Save cache TDLib
               uses: actions/cache/save@v4

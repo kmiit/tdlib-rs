@@ -82,7 +82,17 @@ fn generic_build() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let prefix = format!("{out_dir}/tdlib");
     let include_dir = format!("{prefix}/include");
-    let lib_dir = format!("{prefix}/lib");
+    let lib_dir = {
+        #[cfg(all(feature = "static", target_os = "windows"))]
+        {
+            format!("{prefix}/lib/static")
+        }
+        #[cfg(not(all(feature = "static", target_os = "windows")))]
+        {
+            format!("{prefix}/lib")
+        }
+    };
+
     #[cfg(not(feature = "static"))]
     let dynamic_lib_path = {
         #[cfg(any(
@@ -252,7 +262,11 @@ fn download_tdlib() {
     let zip_path = format!("{}.zip", &tdlib_dir);
 
     // Create the request
-    let response = reqwest::blocking::get(&url).unwrap();
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()
+        .unwrap();
+    let response = client.get(&url).send().unwrap();
 
     // Check if the response status is successful
     if response.status().is_success() {

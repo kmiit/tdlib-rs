@@ -160,6 +160,9 @@ fn generic_build(lib_path: Option<String>) {
     }
     let prefix = correct_lib_path.to_string();
     let include_dir = format!("{prefix}/include");
+    #[cfg(feature = "static")]
+    let lib_dir = format!("{prefix}/lib/static");
+    #[cfg(not(feature = "static"))]
     let lib_dir = format!("{prefix}/lib");
     #[cfg(not(feature = "static"))]
     let dynamic_lib_path = {

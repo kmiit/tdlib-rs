@@ -217,6 +217,9 @@ fn generic_build() {
             println!("cargo:rustc-link-lib=psapi");
             println!("cargo:rustc-link-lib=Normaliz");
             println!("cargo:rustc-link-lib=Crypt32");
+            // Windows system libraries required by OpenSSL (libcrypto)
+            println!("cargo:rustc-link-lib=advapi32");
+            println!("cargo:rustc-link-lib=user32");
         }
     }
     #[cfg(not(feature = "static"))]

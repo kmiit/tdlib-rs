@@ -143,14 +143,16 @@ jobs:
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
                     git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
                     ./bootstrap-vcpkg.bat
+                    ./vcpkg.exe install gperf:x64-windows-static openssl:x64-windows-static zlib:x64-windows-static
                     ./vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows
                     CMAKE_ARCH="x64"
-                    VCPKG_TRIPLET="x64-windows"
+                    VCPKG_TRIPLET="x64-windows-static"
                   elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
                     ./bootstrap-vcpkg.bat
+                    ./vcpkg.exe install gperf:arm64-windows-static openssl:arm64-windows-static zlib:arm64-windows-static
                     ./vcpkg.exe install gperf:arm64-windows openssl:arm64-windows zlib:arm64-windows
                     CMAKE_ARCH="ARM64"
-                    VCPKG_TRIPLET="arm64-windows"
+                    VCPKG_TRIPLET="arm64-windows-static"
                   else
                     echo "Unsupported architecture: $RUNNER_ARCH"
                     exit 1
@@ -162,17 +164,20 @@ jobs:
                   cmake -A "$CMAKE_ARCH" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake ..
                   cmake --build . --target install --config Release
               shell: bash
-            - name: Copy OpenSSL and zlib static libraries from vcpkg
+            - name: Copy OpenSSL and zlib static and dynamic libraries from vcpkg
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
-                    VCPKG_TRIPLET="x64-windows"
+                    VCPKG_TRIPLET_STATIC="x64-windows-static"
+                    VCPKG_TRIPLET_DYNAMIC="x64-windows"
                   else
-                    VCPKG_TRIPLET="arm64-windows"
+                    VCPKG_TRIPLET_STATIC="arm64-windows-static"
+                    VCPKG_TRIPLET_DYNAMIC="arm64-windows"
                   fi
                   mkdir -p ./td/tdlib/lib
-                  # Copy OpenSSL and zlib libraries from vcpkg
-                  cp ./td/vcpkg/installed/$VCPKG_TRIPLET/lib/*.lib ./td/tdlib/lib/ || true
+                  mkdir -p ./td/tdlib/bin
+                  cp ./td/vcpkg/installed/$VCPKG_TRIPLET_STATIC/lib/*.lib ./td/tdlib/lib/ 2>/dev/null || true
+                  cp ./td/vcpkg/installed/$VCPKG_TRIPLET_DYNAMIC/bin/*.dll ./td/tdlib/bin/ 2>/dev/null || true
               shell: bash
             - name: Save cache TDLib
               uses: actions/cache/save@v4

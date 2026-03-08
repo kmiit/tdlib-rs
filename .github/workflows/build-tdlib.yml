@@ -26,8 +26,19 @@ jobs:
               with:
                   path: td/
                   key: tdlib-${{ env.TDLIB_VERSION }}-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Restore ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/restore@v4
+              with:
+                  path: .ccache/
+                  key: ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                  restore-keys: |
+                      ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
@@ -48,6 +59,12 @@ jobs:
                   cp /usr/lib/*/libssl.a ./td/tdlib/lib/ || cp /usr/lib/libssl.a ./td/tdlib/lib/ || true
                   cp /usr/lib/*/libcrypto.a ./td/tdlib/lib/ || cp /usr/lib/libcrypto.a ./td/tdlib/lib/ || true
                   cp /usr/lib/*/libz.a ./td/tdlib/lib/ || cp /usr/lib/libz.a ./td/tdlib/lib/ || true
+            - name: Save ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
+              uses: actions/cache/save@v4
+              with:
+                  path: .ccache/
+                  key: ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -76,8 +93,19 @@ jobs:
               with:
                   path: td/
                   key: tdlib-${{ env.TDLIB_VERSION }}-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Restore ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/restore@v4
+              with:
+                  path: .ccache/
+                  key: ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                  restore-keys: |
+                      ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
               run: |
                   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   brew install gperf openssl zlib ninja ccache
@@ -109,6 +137,12 @@ jobs:
                   cp $OPENSSL_DIR/lib/libssl.a ./td/tdlib/lib/ || true
                   cp $OPENSSL_DIR/lib/libcrypto.a ./td/tdlib/lib/ || true
                   cp $ZLIB_DIR/lib/libz.a ./td/tdlib/lib/ || true
+            - name: Save ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
+              uses: actions/cache/save@v4
+              with:
+                  path: .ccache/
+                  key: ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -137,8 +171,29 @@ jobs:
               with:
                   path: td/
                   key: tdlib-${{ env.TDLIB_VERSION }}-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Set up MSVC developer environment
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: ilammy/msvc-dev-cmd@v1
+              with:
+                  arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'amd64' }}
+            - name: Restore ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/restore@v4
+              with:
+                  path: .ccache/
+                  key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                  restore-keys: |
+                      ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
+                  CCACHE_CPP2: "yes"
+                  CCACHE_SLOPPINESS: time_macros
+                  # ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN are provided automatically
+                  # by GitHub Actions and are used by vcpkg's x-gha binary cache backend.
+                  VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td
@@ -175,7 +230,7 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
                   cmake --build . --target install --parallel
                   cd ..
 
@@ -183,7 +238,7 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
                   cmake --build . --target install --parallel
                   cd ..
                   
@@ -200,6 +255,12 @@ jobs:
                   # Copy dynamic TDLib DLL and its dependencies
                   cp -r tdlib-dynamic/bin/* tdlib/bin/ || true
               shell: bash
+            - name: Save ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
+              uses: actions/cache/save@v4
+              with:
+                  path: .ccache/
+                  key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Copy OpenSSL and zlib libraries from vcpkg
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -241,6 +302,14 @@ jobs:
               with:
                   path: td/
                   key: tdlib-${{ env.TDLIB_VERSION }}-android-${{ matrix.abi }}
+            - name: Restore ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: actions/cache/restore@v4
+              with:
+                  path: .ccache/
+                  key: ccache-android-${{ matrix.abi }}-${{ env.TDLIB_COMMIT }}
+                  restore-keys: |
+                      ccache-android-${{ matrix.abi }}-
             - name: Setup Android NDK
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -285,6 +354,9 @@ jobs:
             #       echo "ZLIB_ROOT=$(pwd)/zlib-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
@@ -321,6 +393,12 @@ jobs:
                   cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
                   # cp $ZLIB_ROOT/lib/libz.a ./td/tdlib/lib/
                   cp $NDK_TOOLCHAIN/sysroot/usr/lib/${{ matrix.abi }}-linux-android/libz.a ./td/tdlib/lib/
+            - name: Save ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
+              uses: actions/cache/save@v4
+              with:
+                  path: .ccache/
+                  key: ccache-android-${{ matrix.abi }}-${{ env.TDLIB_COMMIT }}
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

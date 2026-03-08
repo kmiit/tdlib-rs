@@ -181,9 +181,9 @@ jobs:
               uses: actions/cache/restore@v4
               with:
                   path: .ccache/
-                  key: ccache-v2-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                  key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
                   restore-keys: |
-                      ccache-v2-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-
+                      ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-
             - name: Install build tools
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: choco install ninja ccache -y
@@ -269,7 +269,7 @@ jobs:
               uses: actions/cache/save@v4
               with:
                   path: .ccache/
-                  key: ccache-v2-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                  key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Copy OpenSSL and zlib libraries from vcpkg
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |

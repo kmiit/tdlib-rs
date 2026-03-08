@@ -7,6 +7,7 @@ on:
 env:
     TDLIB_VERSION: "1.8.61"
     TDLIB_COMMIT: 6d509061574d684117f74133056aa43df89022fc
+    OPENSSL_VERSION: "3.6.1"
 
 jobs:
     build-linux:
@@ -207,6 +208,97 @@ jobs:
                   # Copy dynamic libraries (DLLs) from dynamic triplet
                   cp ./td/vcpkg/installed/$VCPKG_TRIPLET_DYNAMIC/bin/*.dll ./td/tdlib/bin/ 2>/dev/null || true
               shell: bash
+            - name: Save cache TDLib
+              uses: actions/cache/save@v4
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              with:
+                  path: td/
+                  key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
+                  path: ./td/tdlib/
+                  overwrite: true
+
+    build-android:
+        strategy:
+            fail-fast: false
+            matrix:
+                abi: [aarch64, x86_64]
+        runs-on: ubuntu-latest
+        steps:
+            - name: Restore cache TDLib
+              id: cache-tdlib-restore
+              uses: actions/cache/restore@v4
+              with:
+                  path: td/
+                  key: tdlib-${{ env.TDLIB_VERSION }}-android-${{ matrix.abi }}
+            - name: Setup Android NDK
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  # Install NDK r27d (27.3.13750724) for reproducible builds
+                  echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;27.3.13750724"
+                  echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/27.3.13750724" >> $GITHUB_ENV
+                  echo "ANDROID_API=29" >> $GITHUB_ENV
+                  echo "NDK_TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
+                  # echo "NDK_CC=${{ matrix.abi }}-linux-android$ANDROID_API-clang" >> $GITHUB_ENV
+                  case "${{ matrix.abi }}" in
+                    aarch64)
+                      echo "OPENSSL_TARGET=android-arm64" >> $GITHUB_ENV
+                      echo "ANDROID_ABI=arm64-v8a" >> $GITHUB_ENV
+                      ;;
+                    x86_64)
+                      echo "OPENSSL_TARGET=android-x86_64" >> $GITHUB_ENV
+                      echo "ANDROID_ABI=x86_64" >> $GITHUB_ENV
+                      ;;
+                  esac
+            - name: Build static openssl for Android
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+                  tar -xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+                  cd openssl-${{ env.OPENSSL_VERSION }}
+                  export PATH=$NDK_TOOLCHAIN/bin:$PATH
+                  ./Configure $OPENSSL_TARGET no-shared no-tests \
+                    --prefix=$(pwd)/openssl-install
+                  make -j$(nproc)
+                  make install_sw
+                  echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
+            - name: Build TDLib
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get -y upgrade
+                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake
+                  git clone https://github.com/tdlib/td.git
+                  cd td
+                  git checkout $TDLIB_COMMIT
+                  # Generate auto-generated files using native host build before cross-compiling
+                  mkdir native_build
+                  cd native_build
+                  env -u OPENSSL_ROOT_DIR cmake -DCMAKE_BUILD_TYPE=Release ..
+                  cmake --build . --target prepare_cross_compiling
+                  cd ..
+                  rm -rf build
+                  mkdir build
+                  cd build
+                  cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+                    -DANDROID_ABI=$ANDROID_ABI \
+                    -DANDROID_PLATFORM=android-$ANDROID_API \
+                    -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
+                    -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
+                    -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
+                    -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
+                    ..
+                  cmake --build . --target install
+            - name: Copy OpenSSL and zlib static libraries
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  mkdir -p ./td/tdlib/lib
+                  cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
+                  cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
+                  cp $NDK_TOOLCHAIN/sysroot/usr/lib/${{ matrix.abi }}-linux-android/libz.a ./td/tdlib/lib/
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

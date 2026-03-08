@@ -283,6 +283,13 @@ jobs:
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
+                  # Generate auto-generated files using native host build before cross-compiling
+                  rm -rf build-native
+                  mkdir build-native
+                  cd build-native
+                  cmake -DCMAKE_BUILD_TYPE=Release ..
+                  cmake --build . --target prepare_cross_compiling
+                  cd ..
                   rm -rf build
                   mkdir build
                   cd build

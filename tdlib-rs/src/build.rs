@@ -52,6 +52,8 @@ fn copy_dir_all(
 /// files in the OUT_DIR/tdlib folder.
 /// The OUT_DIR environment variable is set by Cargo and points to the target directory.
 /// The OS and architecture currently supported are:
+/// - Android x86_64
+/// - Android aarch64
 /// - Linux x86_64
 /// - Linux aarch64
 /// - Windows x86_64
@@ -145,6 +147,7 @@ fn download_tdlib() {
 ///
 /// The function will panic if the tdlib library is not found at the specified path.
 fn generic_build(lib_path: Option<String>) {
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
     let correct_lib_path: String;
     match lib_path {
         Some(lib_path) => {
@@ -160,33 +163,19 @@ fn generic_build(lib_path: Option<String>) {
     }
     let prefix = correct_lib_path.to_string();
     let include_dir = format!("{prefix}/include");
-    #[cfg(feature = "static")]
-    let lib_dir = format!("{prefix}/lib/static");
+    let lib_dir = if cfg!(feature = "static") && target_os == "windows" {
+        format!("{prefix}/lib/static")
+    } else {
+        format!("{prefix}/lib")
+    };
     #[cfg(not(feature = "static"))]
     let lib_dir = format!("{prefix}/lib");
     #[cfg(not(feature = "static"))]
-    let dynamic_lib_path = {
-        #[cfg(any(
-            all(target_os = "linux", target_arch = "x86_64"),
-            all(target_os = "linux", target_arch = "aarch64")
-        ))]
-        {
-            format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}")
-        }
-        #[cfg(any(
-            all(target_os = "macos", target_arch = "x86_64"),
-            all(target_os = "macos", target_arch = "aarch64")
-        ))]
-        {
-            format!("{lib_dir}/libtdjson.{TDLIB_VERSION}.dylib")
-        }
-        #[cfg(any(
-            all(target_os = "windows", target_arch = "x86_64"),
-            all(target_os = "windows", target_arch = "aarch64")
-        ))]
-        {
-            format!(r"{lib_dir}\tdjson.lib")
-        }
+    let dynamic_lib_path = match target_os.as_str() {
+        "linux" | "android" => format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}"),
+        "macos" => format!("{lib_dir}/libtdjson.{TDLIB_VERSION}.dylib"),
+        "windows" => format!(r"{lib_dir}\tdjson.lib"),
+        _ => panic!("Unsupported target OS: {target_os}"),
     };
 
     #[cfg(feature = "static")]
@@ -209,19 +198,11 @@ fn generic_build(lib_path: Option<String>) {
     let missing_static_libs: Vec<String> = static_libs
         .iter()
         .filter_map(|name| {
-            #[cfg(any(
-                all(target_os = "windows", target_arch = "x86_64"),
-                all(target_os = "windows", target_arch = "aarch64")
-            ))]
-            let path = format!(r"{lib_dir}\{name}.lib");
-
-            #[cfg(any(
-                all(target_os = "linux", target_arch = "x86_64"),
-                all(target_os = "linux", target_arch = "aarch64"),
-                all(target_os = "macos", target_arch = "x86_64"),
-                all(target_os = "macos", target_arch = "aarch64"),
-            ))]
-            let path = format!("{lib_dir}/lib{name}.a");
+            let path = if target_os == "windows" {
+                format!(r"{lib_dir}\{name}.lib")
+            } else {
+                format!("{lib_dir}/lib{name}.a")
+            };
 
             if std::path::PathBuf::from(path.clone()).exists() {
                 None
@@ -248,12 +229,8 @@ fn generic_build(lib_path: Option<String>) {
     // tdjson.dll using the commands below.
     // TODO: investigate and if it is a bug in `cargo` or `rustc`, open an issue to `cargo` to fix
     // this.
-    #[cfg(any(
-        all(target_os = "windows", target_arch = "x86_64"),
-        all(target_os = "windows", target_arch = "aarch64")
-    ))]
     #[cfg(not(feature = "static"))]
-    {
+    if target_os == "windows" {
         let bin_dir = format!(r"{prefix}\bin");
         let cargo_bin = format!("{}/.cargo/bin", dirs::home_dir().unwrap().to_str().unwrap());
 
@@ -280,12 +257,8 @@ fn generic_build(lib_path: Option<String>) {
         let _ = std::fs::copy(zlib1.clone(), cargo_zlib1.clone());
     }
 
-    #[cfg(any(
-        all(target_os = "windows", target_arch = "x86_64"),
-        all(target_os = "windows", target_arch = "aarch64")
-    ))]
     #[cfg(not(feature = "static"))]
-    {
+    if target_os == "windows" {
         let bin_dir = format!(r"{prefix}\bin");
         println!("cargo:rustc-link-search=native={bin_dir}");
     }
@@ -299,24 +272,18 @@ fn generic_build(lib_path: Option<String>) {
     #[cfg(feature = "static")]
     {
         // Link C++ standard library for static tdlib
-        #[cfg(any(
-            all(target_os = "linux", target_arch = "x86_64"),
-            all(target_os = "linux", target_arch = "aarch64"),
-            all(target_os = "macos", target_arch = "x86_64"),
-            all(target_os = "macos", target_arch = "aarch64")
-        ))]
-        {
+        if target_os == "linux" || target_os == "macos" {
             println!("cargo:rustc-link-lib=c++");
             println!("cargo:rustc-link-lib=c++abi");
             println!("cargo:rustc-link-lib=static=ssl");
             println!("cargo:rustc-link-lib=static=crypto");
             println!("cargo:rustc-link-lib=static=z");
-        }
-        #[cfg(any(
-            all(target_os = "windows", target_arch = "x86_64"),
-            all(target_os = "windows", target_arch = "aarch64")
-        ))]
-        {
+        } else if target_os == "android" {
+            println!("cargo:rustc-link-lib=c++_shared");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
+        } else if target_os == "windows" {
             println!("cargo:rustc-link-lib=static=libssl");
             println!("cargo:rustc-link-lib=static=libcrypto");
             println!("cargo:rustc-link-lib=static=zlib");
@@ -324,6 +291,8 @@ fn generic_build(lib_path: Option<String>) {
             println!("cargo:rustc-link-lib=psapi");
             println!("cargo:rustc-link-lib=Normaliz");
             println!("cargo:rustc-link-lib=Crypt32");
+        } else {
+            panic!("Unsupported target OS: {target_os}");
         }
     }
     #[cfg(not(feature = "static"))]
@@ -449,6 +418,8 @@ pub fn build_pkg_config() {
 /// The function will download the tdlib library from the GitHub release page.
 /// Using the `download-tdlib` feature, no system dependencies are required.
 /// The OS and architecture currently supported are:
+/// - Android x86_64
+/// - Android aarch64
 /// - Linux x86_64
 /// - Linux aarch64
 /// - Windows x86_64

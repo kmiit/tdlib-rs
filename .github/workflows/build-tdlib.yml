@@ -191,6 +191,7 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
+                  VCPKG_BUILD_TYPE: release
                   VCPKG_BINARY_SOURCES: "clear"
                   MSYS_NO_PATHCONV: "1"
               run: |

@@ -23,10 +23,19 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Setup ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: hendrikmuhs/ccache-action@v1.2
+              with:
+                create-symlink: true
+                key: ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
@@ -37,13 +46,18 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  CXXFLAGS="-stdlib=libc++" CC=/usr/bin/clang-18 CXX=/usr/bin/clang++-18 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
-                  cmake --build . --target install
+                  CXXFLAGS="-stdlib=libc++" \
+                  CC=/usr/bin/clang-18 \
+                  CXX=/usr/bin/clang++-18 \
+                  cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    ..
+                  cmake --build . --target install --parallel
             - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
-                  mkdir -p ./td/tdlib/lib
-                  # Copy static libraries
                   cp /usr/lib/*/libssl.a ./td/tdlib/lib/ || cp /usr/lib/libssl.a ./td/tdlib/lib/ || true
                   cp /usr/lib/*/libcrypto.a ./td/tdlib/lib/ || cp /usr/lib/libcrypto.a ./td/tdlib/lib/ || true
                   cp /usr/lib/*/libz.a ./td/tdlib/lib/ || cp /usr/lib/libz.a ./td/tdlib/lib/ || true
@@ -51,7 +65,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -73,10 +87,19 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Setup ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: hendrikmuhs/ccache-action@v1.2
+              with:
+                create-symlink: true
+                key: ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
               run: |
                   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   brew install gperf openssl zlib
@@ -88,17 +111,17 @@ jobs:
                   cd build
                   OPENSSL_DIR=$(brew --prefix openssl)
                   ZLIB_DIR=$(brew --prefix zlib)
-                  cmake \
-                    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+                  cmake -G Ninja \
                     -DCMAKE_BUILD_TYPE=Release \
                     -DOPENSSL_ROOT_DIR=$OPENSSL_DIR \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                     ..
-                  cmake --build . --target install
+                  cmake --build . --target install --parallel
             - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
-                  mkdir -p ./td/tdlib/lib
                   OPENSSL_DIR=$(brew --prefix openssl)
                   ZLIB_DIR=$(brew --prefix zlib)
                   # Copy OpenSSL and zlib static libraries
@@ -109,7 +132,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -131,88 +154,92 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Setup ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: hendrikmuhs/ccache-action@v1.2
+              with:
+                key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+            - name: Set up MSVC Developer Command Prompt
+              uses: ilammy/msvc-dev-cmd@v1
+              with:
+                arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'x64' }}
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
+                  CCACHE_CPP2: "yes"
+                  CCACHE_SLOPPINESS: time_macros
+                  VCPKG_ROOT: "C:\\vcpkg"
+                  MSYS_NO_PATHCONV: "1"
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
-                  git clone https://github.com/Microsoft/vcpkg.git
-                  cd vcpkg
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
-                    git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
-                    ./bootstrap-vcpkg.bat
-                    # Install both static and dynamic versions
-                    ./vcpkg.exe install gperf:x64-windows-static openssl:x64-windows-static zlib:x64-windows-static
-                    ./vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows
                     CMAKE_ARCH="x64"
-                    VCPKG_TRIPLET_STATIC="x64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="x64-windows"
                   elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
-                    ./bootstrap-vcpkg.bat
-                    # Install both static and dynamic versions
-                    ./vcpkg.exe install gperf:arm64-windows-static openssl:arm64-windows-static zlib:arm64-windows-static
-                    ./vcpkg.exe install gperf:arm64-windows openssl:arm64-windows zlib:arm64-windows
-                    CMAKE_ARCH="ARM64"
-                    VCPKG_TRIPLET_STATIC="arm64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="arm64-windows"
+                    CMAKE_ARCH="arm64"
                   else
                     echo "Unsupported architecture: $RUNNER_ARCH"
                     exit 1
                   fi
+                  VCPKG_TRIPLET_STATIC="${CMAKE_ARCH}-windows-static-release"
+                  VCPKG_TRIPLET_DYNAMIC="${CMAKE_ARCH}-windows-release"
+                  cat << EOF > "${VCPKG_ROOT}/triplets/community/${CMAKE_ARCH}-windows-release.cmake"
+                  set(VCPKG_TARGET_ARCHITECTURE ${CMAKE_ARCH})
+                  set(VCPKG_CRT_LINKAGE dynamic)
+                  set(VCPKG_LIBRARY_LINKAGE dynamic)
+                  set(VCPKG_BUILD_TYPE release)
+                  EOF
+                  vcpkg install gperf:$VCPKG_TRIPLET_DYNAMIC gperf:$VCPKG_TRIPLET_STATIC
+                  vcpkg install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
+                  vcpkg install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
+
+                  # Build
+                  mkdir build-dynamic
+                  cd build-dynamic
+                  cmake -G Ninja \
+                      -DCMAKE_BUILD_TYPE=Release \
+                      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                      -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                      -DCMAKE_C_FLAGS="/GR- /W4" \
+                      -DCMAKE_CXX_FLAGS="/GR- /W4" \
+                      -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                      -DCMAKE_TOOLCHAIN_FILE:FILEPATH="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+                      -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" \
+                      ..
+                  cmake --build . --target install --parallel --config Release
                   cd ..
-                  
-                  # Build static version
-                  rm -rf build
-                  mkdir build
-                  cd build
-                  cmake -A "$CMAKE_ARCH" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" ..
-                  cmake --build . --target install --config Release
+                  rm -rf build-dynamic
+                  mv tdlib/lib/tdjson.lib ./tdjson_dynamic.lib
+                  rm -rf tdlib/include tdlib/lib
+                  mkdir build-static
+                  cd build-static
+                  cmake -G Ninja \
+                      -DCMAKE_BUILD_TYPE=Release \
+                      -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                      -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                      -DCMAKE_C_FLAGS="/GR- /W4" \
+                      -DCMAKE_CXX_FLAGS="/GR- /W4" \
+                      -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                      -DCMAKE_TOOLCHAIN_FILE:FILEPATH="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
+                      -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" \
+                      ..
+                  cmake --build . --target install --parallel --config Release
                   cd ..
-                  
-                  # Build dynamic version
-                  rm -rf build
-                  mkdir build
-                  cd build
-                  cmake -A "$CMAKE_ARCH" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" ..
-                  cmake --build . --target install --config Release
-                  cd ..
-                  
-                  # Merge both versions into tdlib directory
-                  mkdir -p tdlib/lib/static
-                  mkdir -p tdlib/bin
-                  mkdir -p tdlib/include
-                  # Copy headers (same from both)
-                  cp -r tdlib-static/include/* tdlib/include/
-                  # Copy static libraries to lib/static subdirectory
-                  cp -r tdlib-static/lib/* tdlib/lib/static/ || true
-                  # Copy dynamic version import libraries to lib
-                  cp -r tdlib-dynamic/lib/* tdlib/lib/ || true
-                  # Copy dynamic TDLib DLL and its dependencies
-                  cp -r tdlib-dynamic/bin/* tdlib/bin/ || true
-              shell: bash
-            - name: Copy OpenSSL and zlib libraries from vcpkg
-              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              run: |
-                  if [[ "$RUNNER_ARCH" == "X64" ]]; then
-                    VCPKG_TRIPLET_STATIC="x64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="x64-windows"
-                  else
-                    VCPKG_TRIPLET_STATIC="arm64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="arm64-windows"
-                  fi
-                  # Copy static libraries to lib/static subdirectory
-                  cp ./td/vcpkg/installed/$VCPKG_TRIPLET_STATIC/lib/*.lib ./td/tdlib/lib/static/ 2>/dev/null || true
-                  # Copy dynamic libraries (DLLs) from dynamic triplet
-                  cp ./td/vcpkg/installed/$VCPKG_TRIPLET_DYNAMIC/bin/*.dll ./td/tdlib/bin/ 2>/dev/null || true
+                  mv ./tdjson_dynamic.lib tdlib/lib/tdjson.lib
+                  # Copy dependencies to lib
+                  cp "${VCPKG_ROOT}/installed/$VCPKG_TRIPLET_STATIC/lib/"* tdlib/lib/ 2>/dev/null || true
+                  cp "${VCPKG_ROOT}/installed/$VCPKG_TRIPLET_DYNAMIC/bin/"*.dll tdlib/bin/ 2>/dev/null || true
               shell: bash
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: ./td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -232,8 +259,14 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-android-${{ matrix.abi }}
+            - name: Setup ccache
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: hendrikmuhs/ccache-action@v1.2
+              with:
+                create-symlink: true
+                key: ccache-android-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Setup Android NDK
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -242,7 +275,6 @@ jobs:
                   echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/27.3.13750724" >> $GITHUB_ENV
                   echo "ANDROID_API=29" >> $GITHUB_ENV
                   echo "NDK_TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
-                  # echo "NDK_CC=${{ matrix.abi }}-linux-android$ANDROID_API-clang" >> $GITHUB_ENV
                   case "${{ matrix.abi }}" in
                     aarch64)
                       echo "OPENSSL_TARGET=android-arm64" >> $GITHUB_ENV
@@ -267,31 +299,39 @@ jobs:
                   echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              env:
+                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
-                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake
+                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
                   # Generate auto-generated files using native host build before cross-compiling
                   mkdir native_build
                   cd native_build
-                  env -u OPENSSL_ROOT_DIR cmake -DCMAKE_BUILD_TYPE=Release ..
-                  cmake --build . --target prepare_cross_compiling
+                  env -u OPENSSL_ROOT_DIR cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+                  cmake --build . --target prepare_cross_compiling --parallel
                   cd ..
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+                  cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
                     -DANDROID_ABI=$ANDROID_ABI \
                     -DANDROID_PLATFORM=android-$ANDROID_API \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                     -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
                     -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
                     -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
+                    -DTD_ENABLE_JNI=ON \
                     ..
-                  cmake --build . --target install
+                  cmake --build . --target install/strip --parallel
             - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -303,7 +343,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4

@@ -260,7 +260,7 @@ jobs:
                   tar -xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
                   cd openssl-${{ env.OPENSSL_VERSION }}
                   export PATH=$NDK_TOOLCHAIN/bin:$PATH
-                  ./Configure $OPENSSL_TARGET -D__ANDROID_API__=29 no-tests \
+                  ./Configure $OPENSSL_TARGET -D__ANDROID_API__=29 no-shared no-tests \
                     --prefix=$(pwd)/openssl-install
                   make -j$(nproc)
                   make install_sw

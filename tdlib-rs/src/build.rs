@@ -52,6 +52,8 @@ fn copy_dir_all(
 /// files in the OUT_DIR/tdlib folder.
 /// The OUT_DIR environment variable is set by Cargo and points to the target directory.
 /// The OS and architecture currently supported are:
+/// - Android x86_64
+/// - Android aarch64
 /// - Linux x86_64
 /// - Linux aarch64
 /// - Windows x86_64
@@ -168,7 +170,9 @@ fn generic_build(lib_path: Option<String>) {
     let dynamic_lib_path = {
         #[cfg(any(
             all(target_os = "linux", target_arch = "x86_64"),
-            all(target_os = "linux", target_arch = "aarch64")
+            all(target_os = "linux", target_arch = "aarch64"),
+            all(target_os = "android", target_arch = "x86_64"),
+            all(target_os = "android", target_arch = "aarch64"),
         ))]
         {
             format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}")
@@ -220,6 +224,8 @@ fn generic_build(lib_path: Option<String>) {
                 all(target_os = "linux", target_arch = "aarch64"),
                 all(target_os = "macos", target_arch = "x86_64"),
                 all(target_os = "macos", target_arch = "aarch64"),
+                all(target_os = "android", target_arch = "x86_64"),
+                all(target_os = "android", target_arch = "aarch64")
             ))]
             let path = format!("{lib_dir}/lib{name}.a");
 
@@ -308,6 +314,16 @@ fn generic_build(lib_path: Option<String>) {
         {
             println!("cargo:rustc-link-lib=c++");
             println!("cargo:rustc-link-lib=c++abi");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
+        }
+        #[cfg(any(
+            all(target_os = "android", target_arch = "x86_64"),
+            all(target_os = "android", target_arch = "aarch64")
+        ))]
+        {
+            println!("cargo:rustc-link-lib=c++_shared");
             println!("cargo:rustc-link-lib=static=ssl");
             println!("cargo:rustc-link-lib=static=crypto");
             println!("cargo:rustc-link-lib=static=z");
@@ -449,6 +465,8 @@ pub fn build_pkg_config() {
 /// The function will download the tdlib library from the GitHub release page.
 /// Using the `download-tdlib` feature, no system dependencies are required.
 /// The OS and architecture currently supported are:
+/// - Android x86_64
+/// - Android aarch64
 /// - Linux x86_64
 /// - Linux aarch64
 /// - Windows x86_64

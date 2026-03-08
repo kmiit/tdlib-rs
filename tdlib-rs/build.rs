@@ -72,6 +72,8 @@ fn copy_local_tdlib() {
 #[cfg(any(feature = "download-tdlib", feature = "local-tdlib"))]
 /// Build the project using the generic build configuration.
 /// The current supported platforms are:
+/// - Android x86_64
+/// - Android aarch64
 /// - Linux x86_64
 /// - Linux aarch64
 /// - Windows x86_64
@@ -97,7 +99,9 @@ fn generic_build() {
     let dynamic_lib_path = {
         #[cfg(any(
             all(target_os = "linux", target_arch = "x86_64"),
-            all(target_os = "linux", target_arch = "aarch64")
+            all(target_os = "linux", target_arch = "aarch64"),
+            all(target_os = "android", target_arch = "x86_64"),
+            all(target_os = "android", target_arch = "aarch64")
         ))]
         {
             format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}")
@@ -149,6 +153,8 @@ fn generic_build() {
                 all(target_os = "linux", target_arch = "aarch64"),
                 all(target_os = "macos", target_arch = "x86_64"),
                 all(target_os = "macos", target_arch = "aarch64"),
+                all(target_os = "android", target_arch = "aarch64"),
+                all(target_os = "android", target_arch = "x86_64")
             ))]
             let path = format!("{lib_dir}/lib{name}.a");
 
@@ -206,6 +212,16 @@ fn generic_build() {
             println!("cargo:rustc-link-lib=static=z");
         }
         #[cfg(any(
+            all(target_os = "android", target_arch = "x86_64"),
+            all(target_os = "android", target_arch = "aarch64")
+        ))]
+        {
+            println!("cargo:rustc-link-lib=c++_shared");
+            println!("cargo:rustc-link-lib=static=ssl");
+            println!("cargo:rustc-link-lib=static=crypto");
+            println!("cargo:rustc-link-lib=static=z");
+        }
+        #[cfg(any(
             all(target_os = "windows", target_arch = "x86_64"),
             all(target_os = "windows", target_arch = "aarch64")
         ))]
@@ -217,7 +233,6 @@ fn generic_build() {
             println!("cargo:rustc-link-lib=psapi");
             println!("cargo:rustc-link-lib=Normaliz");
             println!("cargo:rustc-link-lib=Crypt32");
-            // Windows system libraries required by OpenSSL (libcrypto)
             println!("cargo:rustc-link-lib=advapi32");
             println!("cargo:rustc-link-lib=user32");
         }
@@ -239,26 +254,6 @@ fn download_tdlib() {
         std::env::var("CARGO_CFG_TARGET_OS").unwrap(),
         std::env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
     );
-    // let target_os = if cfg!(target_os = "windows") {
-    //     "Windows"
-    // } else if cfg!(target_os = "linux") {
-    //     "Linux"
-    // } else if cfg!(target_os = "macos") {
-    //     "macOS"
-    // } else {
-    //     ""
-    // };
-    // let target_arch = if cfg!(target_arch = "x86_64") {
-    //     "X64"
-    // } else if cfg!(target_arch = "aarch64") {
-    //     "ARM64"
-    // } else {
-    //     ""
-    // };
-    // let url = format!(
-    //     "{}/test/{}-{}-TDLib-{}.zip",
-    //     base_url, target_os, target_arch, "2589c3fd46925f5d57e4ec79233cd1bd0f5d0c09"
-    // );
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let tdlib_dir = format!("{}/tdlib", &out_dir);

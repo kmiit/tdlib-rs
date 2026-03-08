@@ -219,3 +219,53 @@ jobs:
                   name: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
                   path: ./td/tdlib/
                   overwrite: true
+
+    build-android:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: ubuntu-latest
+                    - os: ubuntu-24.04-arm
+        runs-on: ${{ matrix.os }}
+        steps:
+            - name: Restore cache TDLib
+              id: cache-tdlib-restore
+              uses: actions/cache/restore@v4
+              with:
+                  path: td/
+                  key: tdlib-${{ env.TDLIB_VERSION }}-android-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Build TDLib
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get -y upgrade
+                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake clang-18 libc++-18-dev libc++abi-18-dev
+                  git clone https://github.com/tdlib/td.git
+                  cd td
+                  git checkout $TDLIB_COMMIT
+                  rm -rf build
+                  mkdir build
+                  cd build
+                  CXXFLAGS="-stdlib=libc++" CC=/usr/bin/clang-18 CXX=/usr/bin/clang++-18 cmake -DTD_ENABLE_JNI=ON -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
+                  cmake --build . --target install
+            - name: Copy OpenSSL and zlib static libraries
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  mkdir -p ./td/tdlib/lib
+                  # Copy static libraries
+                  cp /usr/lib/*/libssl.a ./td/tdlib/lib/ || cp /usr/lib/libssl.a ./td/tdlib/lib/ || true
+                  cp /usr/lib/*/libcrypto.a ./td/tdlib/lib/ || cp /usr/lib/libcrypto.a ./td/tdlib/lib/ || true
+                  cp /usr/lib/*/libz.a ./td/tdlib/lib/ || cp /usr/lib/libz.a ./td/tdlib/lib/ || true
+            - name: Save cache TDLib
+              uses: actions/cache/save@v4
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              with:
+                  path: td/
+                  key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
+                  path: ./td/tdlib/
+                  overwrite: true

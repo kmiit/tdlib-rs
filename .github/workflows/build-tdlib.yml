@@ -287,7 +287,8 @@ jobs:
                   # Generate auto-generated files using native host build before cross-compiling
                   mkdir native_build
                   cd native_build
-                  cmake -DCMAKE_BUILD_TYPE=Release ..
+                  # Unset Android cross-compile env vars so the native host build uses system libraries
+                  env -u OPENSSL_ROOT_DIR -u ZLIB_ROOT cmake -DCMAKE_BUILD_TYPE=Release ..
                   cmake --build . --target prepare_cross_compiling
                   cd ..
                   rm -rf build

@@ -31,7 +31,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
-                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake clang-18 libc++-18-dev libc++abi-18-dev ninja
+                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake clang-18 libc++-18-dev libc++abi-18-dev ninja-build
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
@@ -283,7 +283,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
-                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake ninja
+                  sudo apt-get install make git zlib1g-dev libssl-dev gperf php-cli cmake ninja-build
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT

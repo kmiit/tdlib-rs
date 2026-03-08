@@ -7,6 +7,8 @@ on:
 env:
     TDLIB_VERSION: "1.8.61"
     TDLIB_COMMIT: 6d509061574d684117f74133056aa43df89022fc
+    OPENSSL_VERSION: "3.0.16"
+    ZLIB_VERSION: "1.3.1"
 
 jobs:
     build-android:
@@ -34,7 +36,53 @@ jobs:
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   sudo apt-get update
-                  sudo apt-get install -y make git zlib1g-dev libssl-dev gperf php-cli cmake
+                  sudo apt-get install -y make git gperf php-cli cmake wget
+            - name: Set ABI environment variables
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  case "${{ matrix.abi }}" in
+                    arm64-v8a)
+                      echo "OPENSSL_TARGET=android-arm64" >> $GITHUB_ENV
+                      echo "NDK_CC=aarch64-linux-android21-clang" >> $GITHUB_ENV
+                      ;;
+                    armeabi-v7a)
+                      echo "OPENSSL_TARGET=android-arm" >> $GITHUB_ENV
+                      echo "NDK_CC=armv7a-linux-androideabi21-clang" >> $GITHUB_ENV
+                      ;;
+                    x86_64)
+                      echo "OPENSSL_TARGET=android-x86_64" >> $GITHUB_ENV
+                      echo "NDK_CC=x86_64-linux-android21-clang" >> $GITHUB_ENV
+                      ;;
+                    x86)
+                      echo "OPENSSL_TARGET=android-x86" >> $GITHUB_ENV
+                      echo "NDK_CC=i686-linux-android21-clang" >> $GITHUB_ENV
+                      ;;
+                  esac
+            - name: Build OpenSSL for Android
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  NDK_TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+                  export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+                  export PATH=$NDK_TOOLCHAIN/bin:$PATH
+                  wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+                  tar -xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+                  cd openssl-${{ env.OPENSSL_VERSION }}
+                  ./Configure $OPENSSL_TARGET -D__ANDROID_API__=21 no-shared no-tests \
+                    --prefix=$(pwd)/openssl-install
+                  make -j$(nproc)
+                  make install_sw
+                  echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
+            - name: Build zlib for Android
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  NDK_TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64
+                  wget -q https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+                  tar -xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
+                  cd zlib-${{ env.ZLIB_VERSION }}
+                  CC=$NDK_TOOLCHAIN/bin/$NDK_CC ./configure --static --prefix=$(pwd)/zlib-install
+                  make -j$(nproc)
+                  make install
+                  echo "ZLIB_ROOT=$(pwd)/zlib-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -50,9 +98,18 @@ jobs:
                     -DANDROID_PLATFORM=android-21 \
                     -DCMAKE_BUILD_TYPE=Release \
                     -DTD_ENABLE_JNI=ON \
+                    -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
+                    -DZLIB_ROOT=$ZLIB_ROOT \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                     ..
                   cmake --build . --target install
+            - name: Copy OpenSSL and zlib static libraries
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  mkdir -p ./td/tdlib/lib
+                  cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
+                  cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
+                  cp $ZLIB_ROOT/lib/libz.a ./td/tdlib/lib/
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

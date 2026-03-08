@@ -7,6 +7,8 @@ on:
 env:
     TDLIB_VERSION: "1.8.61"
     TDLIB_COMMIT: 6d509061574d684117f74133056aa43df89022fc
+    OPENSSL_VERSION: "3.6.1"
+    ZLIB_VERSION: "1.3.2"
 
 jobs:
     build-linux:
@@ -224,7 +226,7 @@ jobs:
         strategy:
             fail-fast: false
             matrix:
-                abi: [arm64-v8a, x86_64]
+                abi: [aarch64, x86_64]
         runs-on: ubuntu-latest
         steps:
             - name: Restore cache TDLib
@@ -239,6 +241,39 @@ jobs:
                   # Install NDK r27d (27.3.13750724) for reproducible builds
                   echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;27.3.13750724"
                   echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.3.13750724" >> $GITHUB_ENV
+                  echo "NDK_TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
+                  echo "NDK_CC=${{ matrix.abi }}-linux-android29-clang" >> $GITHUB_ENV
+                  case "${{ matrix.abi }}" in
+                    aarch64)
+                      echo "OPENSSL_TARGET=android-arm64" >> $GITHUB_ENV
+                      echo "ANDROID_ABI=arm64-v8a" >> $GITHUB_ENV
+                      ;;
+                    x86_64)
+                      echo "OPENSSL_TARGET=android-x86_64" >> $GITHUB_ENV
+                      echo "ANDROID_ABI=x86_64" >> $GITHUB_ENV
+                      ;;
+                  esac
+            - name: Build static openssl for Android
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+                  tar -xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
+                  cd openssl-${{ env.OPENSSL_VERSION }}
+                  ./Configure $OPENSSL_TARGET -D__ANDROID_API__=29 no-shared no-tests \
+                    --prefix=$(pwd)/openssl-install
+                  make -j$(nproc)
+                  make install_sw
+                  echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
+            - name: Build zlib for Android
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  wget -q https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+                  tar -xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
+                  cd zlib-${{ env.ZLIB_VERSION }}
+                  CC=$NDK_TOOLCHAIN/bin/$NDK_CC ./configure --static --prefix=$(pwd)/zlib-install
+                  make -j$(nproc)
+                  make install
+                  echo "ZLIB_ROOT=$(pwd)/zlib-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -252,10 +287,12 @@ jobs:
                   mkdir build
                   cd build
                   cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
-                        -DANDROID_ABI=${{ matrix.abi }} \
+                        -DANDROID_ABI=$ANDROID_ABI \
                         -DANDROID_PLATFORM=android-24 \
                         -DTD_ENABLE_JNI=ON \
                         -DCMAKE_BUILD_TYPE=Release \
+                        -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
+                        -DZLIB_ROOT=$ZLIB_ROOT \
                         -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                         ..
                   cmake --build . --target install
@@ -263,10 +300,9 @@ jobs:
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   mkdir -p ./td/tdlib/lib
-                  # Copy static libraries
-                  cp /usr/lib/*/libssl.a ./td/tdlib/lib/ || cp /usr/lib/libssl.a ./td/tdlib/lib/ || true
-                  cp /usr/lib/*/libcrypto.a ./td/tdlib/lib/ || cp /usr/lib/libcrypto.a ./td/tdlib/lib/ || true
-                  cp /usr/lib/*/libz.a ./td/tdlib/lib/ || cp /usr/lib/libz.a ./td/tdlib/lib/ || true
+                  cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
+                  cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
+                  cp $ZLIB_ROOT/lib/libz.a ./td/tdlib/lib/
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

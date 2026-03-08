@@ -24,7 +24,7 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
             - name: Restore ccache
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -69,7 +69,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -91,7 +91,7 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
             - name: Restore ccache
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -147,7 +147,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -169,7 +169,7 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
             - name: Set up MSVC developer environment
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -280,7 +280,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: ./td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4
@@ -300,7 +300,7 @@ jobs:
               id: cache-tdlib-restore
               uses: actions/cache/restore@v4
               with:
-                  path: td/
+                  path: td/tdlib
                   key: tdlib-${{ env.TDLIB_VERSION }}-android-${{ matrix.abi }}
             - name: Restore ccache
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
@@ -403,7 +403,7 @@ jobs:
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               with:
-                  path: td/
+                  path: td/tdlib
                   key: ${{ steps.cache-tdlib-restore.outputs.cache-primary-key }}
             - name: Upload artifact
               uses: actions/upload-artifact@v4

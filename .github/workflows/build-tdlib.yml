@@ -285,9 +285,8 @@ jobs:
                   cd td
                   git checkout $TDLIB_COMMIT
                   # Generate auto-generated files using native host build before cross-compiling
-                  rm -rf build-native
-                  mkdir build-native
-                  cd build-native
+                  mkdir native_build
+                  cd native_build
                   cmake -DCMAKE_BUILD_TYPE=Release ..
                   cmake --build . --target prepare_cross_compiling
                   cd ..
@@ -302,6 +301,7 @@ jobs:
                         -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
                         -DZLIB_ROOT=$ZLIB_ROOT \
                         -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                        -DCMAKE_CROSSCOMPILING=ON \
                         ..
                   cmake --build . --target install
             - name: Copy OpenSSL and zlib static libraries

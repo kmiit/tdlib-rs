@@ -191,9 +191,8 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
-                  # ACTIONS_CACHE_URL and ACTIONS_RUNTIME_TOKEN are provided automatically
-                  # by GitHub Actions and are used by vcpkg's x-gha binary cache backend.
-                  VCPKG_BINARY_SOURCES: clear;x-gha,readwrite
+                  VCPKG_BINARY_SOURCES: "clear"
+                  MSYS_NO_PATHCONV: "1"
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td

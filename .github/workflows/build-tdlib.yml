@@ -175,16 +175,16 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G "Ninja Multi-Config" -A "$CMAKE_ARCH" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
-                  cmake --build . --target install --config Release --parallel
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                  cmake --build . --target install --parallel
                   cd ..
 
                   # Build dynamic version
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G "Ninja Multi-Config" -A "$CMAKE_ARCH" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
-                  cmake --build . --target install --config Release --parallel
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                  cmake --build . --target install --parallel
                   cd ..
                   
                   # Merge both versions into tdlib directory
@@ -295,7 +295,7 @@ jobs:
                   # Generate auto-generated files using native host build before cross-compiling
                   mkdir native_build
                   cd native_build
-                  env -u OPENSSL_ROOT_DIR cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
+                  env -u OPENSSL_ROOT_DIR cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
                   cmake --build . --target prepare_cross_compiling --parallel
                   cd ..
                   rm -rf build
@@ -310,6 +310,7 @@ jobs:
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                     ..
                   cmake --build . --target install --parallel
             - name: Copy OpenSSL and zlib static libraries

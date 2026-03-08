@@ -241,7 +241,8 @@ jobs:
                   # Install NDK r27d (27.3.13750724) for reproducible builds
                   echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;27.3.13750724"
                   echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.3.13750724" >> $GITHUB_ENV
-                  echo "NDK_TOOLCHAIN=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
+                  # Use ANDROID_SDK_ROOT directly to avoid referencing the old ANDROID_NDK_HOME value
+                  echo "NDK_TOOLCHAIN=$ANDROID_SDK_ROOT/ndk/27.3.13750724/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
                   echo "NDK_CC=${{ matrix.abi }}-linux-android29-clang" >> $GITHUB_ENV
                   case "${{ matrix.abi }}" in
                     aarch64)
@@ -256,6 +257,8 @@ jobs:
             - name: Build static openssl for Android
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
+                  # Add NDK toolchain to PATH so OpenSSL's Configure can find the cross-compiler
+                  export PATH=$NDK_TOOLCHAIN/bin:$PATH
                   wget -q https://www.openssl.org/source/openssl-${{ env.OPENSSL_VERSION }}.tar.gz
                   tar -xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
                   cd openssl-${{ env.OPENSSL_VERSION }}
@@ -283,9 +286,21 @@ jobs:
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
-                  rm -rf build
+
+                  # Phase 1: Build host tools required for cross-compilation.
+                  # generate_json and other utilities must be compiled for the host (x86_64)
+                  # before cross-compiling for Android, otherwise the linker will try to link
+                  # the Android (cross-compiled) OpenSSL into host executables and fail.
                   mkdir build
                   cd build
+                  cmake -DCMAKE_BUILD_TYPE=Release ..
+                  cmake --build . --target prepare_cross_compiling
+                  cd ..
+
+                  # Phase 2: Cross-compile TDLib for Android.
+                  # CMake will find the host tools built in the sibling 'build' directory.
+                  mkdir build-android
+                  cd build-android
                   cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
                         -DANDROID_ABI=$ANDROID_ABI \
                         -DANDROID_PLATFORM=android-24 \

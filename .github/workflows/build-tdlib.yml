@@ -300,7 +300,8 @@ jobs:
                     -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
                     -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
                     -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
-                    -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a
+                    -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
+                    ..
                   cmake --build . --target install
             - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

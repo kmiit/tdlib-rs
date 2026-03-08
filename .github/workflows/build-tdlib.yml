@@ -191,29 +191,38 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
-                  VCPKG_BUILD_TYPE: release
                   VCPKG_BINARY_SOURCES: "clear"
                   MSYS_NO_PATHCONV: "1"
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
+                  # Create vcpkg overlay triplets to build only release configurations,
+                  # avoiding debug dependency builds (VCPKG_BUILD_TYPE must be set in
+                  # the triplet file; the environment variable alone is not honoured by vcpkg).
+                  mkdir -p triplets
+                  for arch in x64 arm64; do
+                    for lnk in static dynamic; do
+                      suffix=$( [ "$lnk" = "static" ] && echo "-static" || echo "" )
+                      printf 'set(VCPKG_TARGET_ARCHITECTURE %s)\nset(VCPKG_CRT_LINKAGE %s)\nset(VCPKG_LIBRARY_LINKAGE %s)\nset(VCPKG_BUILD_TYPE release)\n' "$arch" "$lnk" "$lnk" > "triplets/${arch}-windows${suffix}.cmake"
+                    done
+                  done
                   git clone https://github.com/Microsoft/vcpkg.git
                   cd vcpkg
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
                     git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
                     ./bootstrap-vcpkg.bat
-                    # Install both static and dynamic versions
-                    ./vcpkg.exe install gperf:x64-windows-static openssl:x64-windows-static zlib:x64-windows-static
-                    ./vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows
+                    # Install both static and dynamic versions (release-only via overlay triplets)
+                    ./vcpkg.exe install gperf:x64-windows-static openssl:x64-windows-static zlib:x64-windows-static --overlay-triplets=../triplets
+                    ./vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows --overlay-triplets=../triplets
                     CMAKE_ARCH="x64"
                     VCPKG_TRIPLET_STATIC="x64-windows-static"
                     VCPKG_TRIPLET_DYNAMIC="x64-windows"
                   elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
                     ./bootstrap-vcpkg.bat
-                    # Install both static and dynamic versions
-                    ./vcpkg.exe install gperf:arm64-windows-static openssl:arm64-windows-static zlib:arm64-windows-static
-                    ./vcpkg.exe install gperf:arm64-windows openssl:arm64-windows zlib:arm64-windows
+                    # Install both static and dynamic versions (release-only via overlay triplets)
+                    ./vcpkg.exe install gperf:arm64-windows-static openssl:arm64-windows-static zlib:arm64-windows-static --overlay-triplets=../triplets
+                    ./vcpkg.exe install gperf:arm64-windows openssl:arm64-windows zlib:arm64-windows --overlay-triplets=../triplets
                     CMAKE_ARCH="ARM64"
                     VCPKG_TRIPLET_STATIC="arm64-windows-static"
                     VCPKG_TRIPLET_DYNAMIC="arm64-windows"
@@ -230,7 +239,7 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
                   cmake --build . --target install --parallel
                   cd ..
 
@@ -238,7 +247,7 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
                   cmake --build . --target install --parallel
                   cd ..
                   

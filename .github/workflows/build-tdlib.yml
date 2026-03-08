@@ -184,12 +184,15 @@ jobs:
                   key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
                   restore-keys: |
                       ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-
+            - name: Install build tools
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: choco install ninja ccache -y
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
                   CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_BASEDIR: ${{ github.workspace }}
                   CCACHE_MAXSIZE: 512M
-                  CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
                   VCPKG_BINARY_SOURCES: "clear"
                   MSYS_NO_PATHCONV: "1"
@@ -231,9 +234,6 @@ jobs:
                     exit 1
                   fi
                   cd ..
-                  
-                  # Install Ninja and ccache
-                  choco install ninja ccache -y
                   
                   # Build static version
                   rm -rf build

@@ -289,7 +289,7 @@ jobs:
                   cd build
                   cmake -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
                         -DANDROID_ABI=$ANDROID_ABI \
-                        -DANDROID_PLATFORM=android-24 \
+                        -DANDROID_PLATFORM=android-29 \
                         -DTD_ENABLE_JNI=ON \
                         -DCMAKE_BUILD_TYPE=Release \
                         -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \

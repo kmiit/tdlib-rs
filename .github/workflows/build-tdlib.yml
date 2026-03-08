@@ -137,6 +137,11 @@ jobs:
               with:
                   path: td/
                   key: tdlib-${{ env.TDLIB_VERSION }}-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}
+            - name: Set up MSVC developer environment
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              uses: ilammy/msvc-dev-cmd@v1
+              with:
+                  arch: ${{ runner.arch == 'ARM64' && 'arm64' || 'amd64' }}
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -175,7 +180,7 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
                   cmake --build . --target install --parallel
                   cd ..
 
@@ -183,7 +188,7 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ..
+                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
                   cmake --build . --target install --parallel
                   cd ..
                   

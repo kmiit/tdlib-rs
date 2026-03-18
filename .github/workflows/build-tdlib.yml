@@ -83,8 +83,8 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - os: macos-14 # arm64 (M1)
-                    - os: macos-15-intel # Intel # macos-13
+                    - os: macos-latest # arm64 (M1)
+                    - os: macos-26-intel # Intel # macos-13
         runs-on: ${{ matrix.os }}
         steps:
             - name: Restore cache TDLib
@@ -230,7 +230,19 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
+                  cmake -G Ninja \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_C_COMPILER=cl \
+                    -DCMAKE_CXX_COMPILER=cl \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_C_FLAGS="/w" \
+                    -DCMAKE_CXX_FLAGS="/w" \
+                    -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static \
+                    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+                    -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" \
+                    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake \
+                    ..
                   cmake --build . --target install --parallel
                   cd ..
 
@@ -238,7 +250,19 @@ jobs:
                   rm -rf build
                   mkdir build
                   cd build
-                  cmake -G Ninja -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DCMAKE_C_FLAGS="/w" -DCMAKE_CXX_FLAGS="/w" ..
+                  cmake -G Ninja \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_C_COMPILER=cl \
+                    -DCMAKE_CXX_COMPILER=cl \
+                    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_C_FLAGS="/w" \
+                    -DCMAKE_CXX_FLAGS="/w" \
+                    -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic \
+                    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+                    -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" \
+                    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake \
+                    ..
                   cmake --build . --target install --parallel
                   cd ..
                   
@@ -341,17 +365,6 @@ jobs:
                   make -j$(nproc)
                   make install_sw
                   echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
-            # NDK included zlib
-            # - name: Build static zlib for Android
-            #   if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-            #   run: |
-            #       wget -q https://github.com/madler/zlib/archive/refs/tags/v${{ env.ZLIB_VERSION }}.tar.gz -O zlib-${{ env.ZLIB_VERSION }}.tar.gz
-            #       tar -xzf zlib-${{ env.ZLIB_VERSION }}.tar.gz
-            #       cd zlib-${{ env.ZLIB_VERSION }}
-            #       CC=$NDK_TOOLCHAIN/bin/$NDK_CC ./configure --static --prefix=$(pwd)/zlib-install
-            #       make -j$(nproc)
-            #       make install
-            #       echo "ZLIB_ROOT=$(pwd)/zlib-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
@@ -376,23 +389,26 @@ jobs:
                   cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
                     -DANDROID_ABI=$ANDROID_ABI \
                     -DANDROID_PLATFORM=android-$ANDROID_API \
-                    -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
-                    -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
-                    -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
-                    -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
+                    -DCMAKE_BUILD_TYPE=Release \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                    -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
+                    -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
+                    -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
+                    -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
                     ..
                   cmake --build . --target install --parallel
-            - name: Copy OpenSSL and zlib static libraries
+            - name: Copy OpenSSL static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   mkdir -p ./td/tdlib/lib
                   cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
                   cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
-                  # cp $ZLIB_ROOT/lib/libz.a ./td/tdlib/lib/
-                  cp $NDK_TOOLCHAIN/sysroot/usr/lib/${{ matrix.abi }}-linux-android/libz.a ./td/tdlib/lib/
+            - name: Strip debug symbols from static libraries
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  $NDK_TOOLCHAIN/bin/llvm-strip --strip-debug ./td/tdlib/lib/*.a
             - name: Save ccache
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
               uses: actions/cache/save@v4

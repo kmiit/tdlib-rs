@@ -24,15 +24,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # os: [macos-13, macos-14]
-        os: [macos-15-intel, macos-14]
+        os: [macos-26-intel, 	macos-latest]
         feature: [local-tdlib, download-tdlib, pkg-config, docs, "local-tdlib,static", "download-tdlib,static"]
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Download TDLib
         if:  contains(matrix.feature, 'local-tdlib') || contains(matrix.feature, 'pkg-config')
         run: |

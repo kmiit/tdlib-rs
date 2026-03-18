@@ -259,30 +259,26 @@ fn download_tdlib() {
     let tdlib_dir = format!("{}/tdlib", &out_dir);
     let zip_path = format!("{}.zip", &tdlib_dir);
 
-    // Create the request
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(120))
-        .build()
-        .unwrap();
-    let response = client.get(&url).send().unwrap();
+    // Download a prebuilt tdlib archive using a blocking HTTP client.
+    let response = ureq::get(&url).call();
 
-    // Check if the response status is successful
-    if response.status().is_success() {
-        // Create a file to write to
-        let mut dest = File::create(&zip_path).unwrap();
+    let mut response = match response {
+        Ok(response) => response,
+        Err(err) => {
+            panic!(
+                "[{}] Failed to download file: {}\n{}\n{}",
+                "Your OS or architecture may be unsupported.",
+                "Please try using the `pkg-config` or `local-tdlib` features.",
+                err,
+                &url
+            )
+        }
+    };
 
-        // Get the response bytes and write to the file
-        let content = response.bytes().unwrap();
-        std::io::copy(&mut content.as_ref(), &mut dest).unwrap();
-    } else {
-        panic!(
-            "[{}] Failed to download file: {}\n{}\n{}",
-            "Your OS or architecture may be unsupported.",
-            "Please try using the `pkg-config` or `local-tdlib` features.",
-            response.status(),
-            &url
-        )
-    }
+    // Create a file to write to
+    let mut dest = File::create(&zip_path).unwrap();
+    let mut response_reader = response.body_mut().as_reader();
+    std::io::copy(&mut response_reader, &mut dest).unwrap();
 
     let mut archive = zip::ZipArchive::new(File::open(&zip_path).unwrap()).unwrap();
 

@@ -337,8 +337,7 @@ jobs:
                   cd openssl-${{ env.OPENSSL_VERSION }}
                   export PATH=$NDK_TOOLCHAIN/bin:$PATH
                   ./Configure $OPENSSL_TARGET no-shared no-tests \
-                    --prefix=$(pwd)/openssl-install \
-                    -g0 -O3
+                    --prefix=$(pwd)/openssl-install
                   make -j$(nproc)
                   make install_sw
                   echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV

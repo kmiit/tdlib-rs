@@ -83,8 +83,8 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                    - os: macos-14 # arm64 (M1)
-                    - os: macos-15-intel # Intel # macos-13
+                    - os: macos-latest # arm64 (M1)
+                    - os: macos-26-intel # Intel # macos-13
         runs-on: ${{ matrix.os }}
         steps:
             - name: Restore cache TDLib

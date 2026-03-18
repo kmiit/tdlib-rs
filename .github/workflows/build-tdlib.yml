@@ -360,7 +360,7 @@ jobs:
                   tar -xzf openssl-${{ env.OPENSSL_VERSION }}.tar.gz
                   cd openssl-${{ env.OPENSSL_VERSION }}
                   export PATH=$NDK_TOOLCHAIN/bin:$PATH
-                  ./Configure $OPENSSL_TARGET no-shared no-tests \
+                  CFLAGS="-O2 -g0" ./Configure $OPENSSL_TARGET no-shared no-tests \
                     --prefix=$(pwd)/openssl-install
                   make -j$(nproc)
                   make install_sw
@@ -390,6 +390,8 @@ jobs:
                     -DANDROID_ABI=$ANDROID_ABI \
                     -DANDROID_PLATFORM=android-$ANDROID_API \
                     -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_C_FLAGS="-g0" \
+                    -DCMAKE_CXX_FLAGS="-g0" \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
@@ -405,10 +407,6 @@ jobs:
                   mkdir -p ./td/tdlib/lib
                   cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
                   cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
-            - name: Strip debug symbols from static libraries
-              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              run: |
-                  $NDK_TOOLCHAIN/bin/llvm-strip --strip-debug ./td/tdlib/lib/*.a
             - name: Save ccache
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
               uses: actions/cache/save@v4

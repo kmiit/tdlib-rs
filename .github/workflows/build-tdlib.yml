@@ -300,6 +300,25 @@ jobs:
                   # Copy dynamic libraries (DLLs) from dynamic triplet
                   cp ./td/vcpkg/installed/$VCPKG_TRIPLET_DYNAMIC/bin/*.dll ./td/tdlib/bin/ 2>/dev/null || true
               shell: bash
+            - name: Trim Windows artifacts
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  # Remove debug symbol and intermediate files that are not needed at runtime.
+                  find ./td/tdlib -type f \( -iname "*.pdb" -o -iname "*.ipdb" -o -iname "*.iobj" -o -iname "*.exp" \) -delete
+
+                  # Keep both static and dynamic libraries, but strip symbols when tool is available.
+                  if command -v llvm-strip >/dev/null 2>&1; then
+                    find ./td/tdlib -type f \( -iname "*.dll" -o -iname "*.exe" \) -print0 | while IFS= read -r -d '' file; do
+                      llvm-strip --strip-unneeded "$file" || true
+                    done
+
+                    find ./td/tdlib -type f -iname "*.lib" -print0 | while IFS= read -r -d '' file; do
+                      llvm-strip -g "$file" || true
+                    done
+                  else
+                    echo "llvm-strip not found, skipping symbol stripping"
+                  fi
+              shell: bash
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

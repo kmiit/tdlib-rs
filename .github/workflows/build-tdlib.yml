@@ -191,7 +191,6 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
-                  VCPKG_BUILD_TYPE: release
                   VCPKG_BINARY_SOURCES: "clear"
                   MSYS_NO_PATHCONV: "1"
               run: |
@@ -203,20 +202,44 @@ jobs:
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
                     git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
                     ./bootstrap-vcpkg.bat
-                    # Install both static and dynamic versions
-                    ./vcpkg.exe install gperf:x64-windows-static openssl:x64-windows-static zlib:x64-windows-static
-                    ./vcpkg.exe install gperf:x64-windows openssl:x64-windows zlib:x64-windows
+                    printf '%s\n' \
+                      'set(VCPKG_TARGET_ARCHITECTURE x64)' \
+                      'set(VCPKG_CRT_LINKAGE dynamic)' \
+                      'set(VCPKG_LIBRARY_LINKAGE static)' \
+                      'set(VCPKG_BUILD_TYPE release)' \
+                      > triplets/community/x64-windows-static-release.cmake
+                    printf '%s\n' \
+                      'set(VCPKG_TARGET_ARCHITECTURE x64)' \
+                      'set(VCPKG_CRT_LINKAGE dynamic)' \
+                      'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
+                      'set(VCPKG_BUILD_TYPE release)' \
+                      > triplets/community/x64-windows-release.cmake
+                    # Install release-only static and dynamic dependencies.
+                    ./vcpkg.exe install gperf:x64-windows-static-release openssl:x64-windows-static-release zlib:x64-windows-static-release
+                    ./vcpkg.exe install gperf:x64-windows-release openssl:x64-windows-release zlib:x64-windows-release
                     CMAKE_ARCH="x64"
-                    VCPKG_TRIPLET_STATIC="x64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="x64-windows"
+                    VCPKG_TRIPLET_STATIC="x64-windows-static-release"
+                    VCPKG_TRIPLET_DYNAMIC="x64-windows-release"
                   elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
                     ./bootstrap-vcpkg.bat
-                    # Install both static and dynamic versions
-                    ./vcpkg.exe install gperf:arm64-windows-static openssl:arm64-windows-static zlib:arm64-windows-static
-                    ./vcpkg.exe install gperf:arm64-windows openssl:arm64-windows zlib:arm64-windows
+                    printf '%s\n' \
+                      'set(VCPKG_TARGET_ARCHITECTURE arm64)' \
+                      'set(VCPKG_CRT_LINKAGE dynamic)' \
+                      'set(VCPKG_LIBRARY_LINKAGE static)' \
+                      'set(VCPKG_BUILD_TYPE release)' \
+                      > triplets/community/arm64-windows-static-release.cmake
+                    printf '%s\n' \
+                      'set(VCPKG_TARGET_ARCHITECTURE arm64)' \
+                      'set(VCPKG_CRT_LINKAGE dynamic)' \
+                      'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
+                      'set(VCPKG_BUILD_TYPE release)' \
+                      > triplets/community/arm64-windows-release.cmake
+                    # Install release-only static and dynamic dependencies.
+                    ./vcpkg.exe install gperf:arm64-windows-static-release openssl:arm64-windows-static-release zlib:arm64-windows-static-release
+                    ./vcpkg.exe install gperf:arm64-windows-release openssl:arm64-windows-release zlib:arm64-windows-release
                     CMAKE_ARCH="ARM64"
-                    VCPKG_TRIPLET_STATIC="arm64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="arm64-windows"
+                    VCPKG_TRIPLET_STATIC="arm64-windows-static-release"
+                    VCPKG_TRIPLET_DYNAMIC="arm64-windows-release"
                   else
                     echo "Unsupported architecture: $RUNNER_ARCH"
                     exit 1
@@ -236,10 +259,9 @@ jobs:
                     -DCMAKE_CXX_COMPILER=cl \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                    -DCMAKE_C_FLAGS="/w" \
-                    -DCMAKE_CXX_FLAGS="/w" \
+                    -DCMAKE_C_FLAGS="/W4" \
+                    -DCMAKE_CXX_FLAGS="/W4" \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-static \
-                    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
                     -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_STATIC" \
                     -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake \
                     ..
@@ -256,16 +278,15 @@ jobs:
                     -DCMAKE_CXX_COMPILER=cl \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                    -DCMAKE_C_FLAGS="/w" \
-                    -DCMAKE_CXX_FLAGS="/w" \
+                    -DCMAKE_C_FLAGS="/W4" \
+                    -DCMAKE_CXX_FLAGS="/W4" \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib-dynamic \
-                    -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
                     -DVCPKG_TARGET_TRIPLET="$VCPKG_TRIPLET_DYNAMIC" \
                     -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake \
                     ..
                   cmake --build . --target install --parallel
                   cd ..
-                  
+
                   # Merge both versions into tdlib directory
                   mkdir -p tdlib/lib/static
                   mkdir -p tdlib/bin
@@ -289,11 +310,11 @@ jobs:
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
-                    VCPKG_TRIPLET_STATIC="x64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="x64-windows"
+                    VCPKG_TRIPLET_STATIC="x64-windows-static-release"
+                    VCPKG_TRIPLET_DYNAMIC="x64-windows-release"
                   else
-                    VCPKG_TRIPLET_STATIC="arm64-windows-static"
-                    VCPKG_TRIPLET_DYNAMIC="arm64-windows"
+                    VCPKG_TRIPLET_STATIC="arm64-windows-static-release"
+                    VCPKG_TRIPLET_DYNAMIC="arm64-windows-release"
                   fi
                   # Copy static libraries to lib/static subdirectory
                   cp ./td/vcpkg/installed/$VCPKG_TRIPLET_STATIC/lib/*.lib ./td/tdlib/lib/static/ 2>/dev/null || true

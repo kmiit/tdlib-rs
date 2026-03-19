@@ -399,12 +399,31 @@ jobs:
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
                     ..
                   cmake --build . --target install --parallel
-            - name: Copy OpenSSL static libraries
+            - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
                   mkdir -p ./td/tdlib/lib
                   cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
                   cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
+                  cp $NDK_TOOLCHAIN/sysroot/usr/lib/${{ matrix.abi }}-linux-android/libz.a ./td/tdlib/lib/
+            - name: Strip Android artifacts
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  STRIP_TOOL="$NDK_TOOLCHAIN/bin/llvm-strip"
+                  if [ ! -x "$STRIP_TOOL" ]; then
+                    echo "strip tool not found: $STRIP_TOOL"
+                    exit 1
+                  fi
+
+                  # Reduce size of shared objects while preserving runtime-required symbols.
+                  find ./td/tdlib -type f \( -name "*.so" -o -name "*.so.*" \) -print0 | while IFS= read -r -d '' file; do
+                    "$STRIP_TOOL" --strip-unneeded "$file" || true
+                  done
+
+                  # Remove debug symbols from static libraries to keep both static and dynamic packages smaller.
+                  find ./td/tdlib -type f -name "*.a" -print0 | while IFS= read -r -d '' file; do
+                    "$STRIP_TOOL" -g "$file" || true
+                  done
             - name: Save ccache
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true' && always()
               uses: actions/cache/save@v4

@@ -85,14 +85,11 @@ fn generic_build() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let prefix = format!("{out_dir}/tdlib");
     let include_dir = format!("{prefix}/include");
-    let lib_dir = if cfg!(feature = "static") && target_os == "windows" {
-        format!("{prefix}/lib/static")
-    } else {
-        format!("{prefix}/lib")
-    };
+    let lib_dir = format!("{prefix}/lib")
     #[cfg(not(feature = "static"))]
     let dynamic_lib_path = match target_os.as_str() {
-        "linux" | "android" => format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}"),
+        "android" => format!("{lib_dir}/libtdjson.so"),
+        "linux" => format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}"),
         "macos" => format!("{lib_dir}/libtdjson.{TDLIB_VERSION}.dylib"),
         "windows" => format!(r"{lib_dir}\tdjson.lib"),
         _ => panic!("Unsupported target OS: {target_os}"),
@@ -167,7 +164,7 @@ fn generic_build() {
             println!("cargo:rustc-link-lib=static=crypto");
             println!("cargo:rustc-link-lib=static=z");
         } else if target_os == "android" {
-            println!("cargo:rustc-link-lib=c++_shared");
+            println!("cargo:rustc-link-lib=static=c++_static");
             println!("cargo:rustc-link-lib=static=ssl");
             println!("cargo:rustc-link-lib=static=crypto");
             println!("cargo:rustc-link-lib=static=z");

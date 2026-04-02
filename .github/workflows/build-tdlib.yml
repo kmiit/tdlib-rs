@@ -168,8 +168,6 @@ jobs:
                   cd vcpkg
                   git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
                   ./bootstrap-vcpkg.bat
-                  mkdir overlay-triples
-                  echo "set(VCPKG_BUILD_TYPE release)" > overlay-triples/overlay.cmake
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
                     CMAKE_ARCH="x64"
                     VCPKG_TRIPLET_STATIC="x64-windows-static"
@@ -182,10 +180,10 @@ jobs:
                     echo "Unsupported architecture: $RUNNER_ARCH"
                     exit 1
                   fi
-                  ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC --overlay-triplets=overlay-triples # Build only
+                  ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC# Build only
                   # Install both static and dynamic versions
-                  ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC --overlay-triplets=overlay-triples
-                  ./vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC --overlay-triplets=overlay-triples
+                  ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
+                  ./vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
                   cd ..
 
                   # Build dynamic version
@@ -297,7 +295,7 @@ jobs:
                     -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
                     ..
-                  cmake --build . --target install --parallel
+                  cmake --build . --target install --parallel --strip
             - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |

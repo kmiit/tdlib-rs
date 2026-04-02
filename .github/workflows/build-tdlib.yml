@@ -175,6 +175,7 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
+                  CL: "/wd9025"
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td
@@ -210,7 +211,8 @@ jobs:
                       -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                       ..
-                  cmake --build . --target install --parallel --config Release
+                  cmake --build . --config Release
+                  cmake --install . --config Release
                   cd ..
 
                   # Copy static dependencies to lib

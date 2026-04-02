@@ -306,12 +306,13 @@ jobs:
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
+                    -DCMAKE_STRIP=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
                     -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
                     -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
                     -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
                     ..
-                  cmake --build . --target install --parallel
+                  cmake --build . --target install/strip --parallel
             - name: Copy OpenSSL and zlib static libraries
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |

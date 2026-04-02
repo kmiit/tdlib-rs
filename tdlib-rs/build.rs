@@ -85,14 +85,11 @@ fn generic_build() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let prefix = format!("{out_dir}/tdlib");
     let include_dir = format!("{prefix}/include");
-    let lib_dir = if cfg!(feature = "static") && target_os == "windows" {
-        format!("{prefix}/lib/static")
-    } else {
-        format!("{prefix}/lib")
-    };
+    let lib_dir = format!("{prefix}/lib");
     #[cfg(not(feature = "static"))]
     let dynamic_lib_path = match target_os.as_str() {
-        "linux" | "android" => format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}"),
+        "android" => format!("{lib_dir}/libtdjson.so"),
+        "linux" => format!("{lib_dir}/libtdjson.so.{TDLIB_VERSION}"),
         "macos" => format!("{lib_dir}/libtdjson.{TDLIB_VERSION}.dylib"),
         "windows" => format!(r"{lib_dir}\tdjson.lib"),
         _ => panic!("Unsupported target OS: {target_os}"),
@@ -115,7 +112,21 @@ fn generic_build() {
     ];
 
     #[cfg(feature = "static")]
-    let missing_static_libs: Vec<String> = static_libs
+    let static_libs_external = if target_os == "windows" {
+        ["libssl", "libcrypto", "zlib"]
+    } else {
+        ["ssl", "crypto", "z"]
+    };
+
+    #[cfg(feature = "static")]
+    let all_static_libs: Vec<String> = static_libs
+        .iter()
+        .map(|name| name.to_string())
+        .chain(static_libs_external.iter().map(|name| name.to_string()))
+        .collect();
+
+    #[cfg(feature = "static")]
+    let missing_static_libs: Vec<String> = all_static_libs
         .iter()
         .filter_map(|name| {
             let path = if target_os == "windows" {
@@ -154,7 +165,7 @@ fn generic_build() {
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:include={include_dir}");
     #[cfg(feature = "static")]
-    for link_name in &static_libs {
+    for link_name in &all_static_libs {
         println!("cargo:rustc-link-lib=static={link_name}");
     }
     #[cfg(feature = "static")]
@@ -163,18 +174,9 @@ fn generic_build() {
         if target_os == "linux" || target_os == "macos" {
             println!("cargo:rustc-link-lib=c++");
             println!("cargo:rustc-link-lib=c++abi");
-            println!("cargo:rustc-link-lib=static=ssl");
-            println!("cargo:rustc-link-lib=static=crypto");
-            println!("cargo:rustc-link-lib=static=z");
         } else if target_os == "android" {
-            println!("cargo:rustc-link-lib=c++_shared");
-            println!("cargo:rustc-link-lib=static=ssl");
-            println!("cargo:rustc-link-lib=static=crypto");
-            println!("cargo:rustc-link-lib=static=z");
+            println!("cargo:rustc-link-lib=static=c++_static");
         } else if target_os == "windows" {
-            println!("cargo:rustc-link-lib=static=libssl");
-            println!("cargo:rustc-link-lib=static=libcrypto");
-            println!("cargo:rustc-link-lib=static=zlib");
             // Windows system libraries required by TDLib
             println!("cargo:rustc-link-lib=psapi");
             println!("cargo:rustc-link-lib=Normaliz");

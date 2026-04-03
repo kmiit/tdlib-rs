@@ -179,10 +179,6 @@ jobs:
                   git clone https://github.com/tdlib/td.git
                   cd td
                   git checkout $TDLIB_COMMIT
-                  git clone https://github.com/Microsoft/vcpkg.git
-                  cd vcpkg
-                  git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
-                  ./bootstrap-vcpkg.bat
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
                     CMAKE_ARCH="x64"
                     VCPKG_TRIPLET_STATIC="x64-windows-static-release"
@@ -201,15 +197,17 @@ jobs:
                       'set(VCPKG_CRT_LINKAGE dynamic)' \
                       'set(VCPKG_LIBRARY_LINKAGE static)' \
                       'set(VCPKG_BUILD_TYPE release)' \
-                      > triplets/community/${VCPKG_TRIPLET_STATIC}.cmake
+                      > $VCPKG_ROOT/triplets/community/${VCPKG_TRIPLET_STATIC}.cmake
                   printf '%s\n' \
                       'set(VCPKG_TARGET_ARCHITECTURE ${CMAKE_ARCH})' \
                       'set(VCPKG_CRT_LINKAGE dynamic)' \
                       'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
                       'set(VCPKG_BUILD_TYPE release)' \
-                      > triplets/community/${VCPKG_TRIPLET_DYNAMIC}.cmake
+                      > $VCPKG_ROOT/triplets/community/${VCPKG_TRIPLET_DYNAMIC}.cmake
                   ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC # Build only
                   echo "VCPKG_TARGET_ARCHITECTURE=${CMAKE_ARCH}......................."
+                  echo "VCPKG_TRIPLET_STATIC=${VCPKG_TRIPLET_STATIC},$VCPKG_TRIPLET_STATIC......................."
+                  echo "VCPKG_TRIPLET_DYNAMIC=${VCPKG_TRIPLET_DYNAMIC}......................."
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
                   cd ..

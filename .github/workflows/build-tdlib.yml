@@ -175,7 +175,6 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
-                  CL: "/wd9025"
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td
@@ -313,6 +312,12 @@ jobs:
                     -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
                     -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
+                    -DTD_ENABLE_JNI=ON \
+                    -DTD_ENABLE_LTO=ON \
+                    -DCMAKE_AR=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar \
+                    -DCMAKE_NM=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm \
+                    -DCMAKE_OBJDUMP=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objdump \
+                    -DCMAKE_RANLIB=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib \
                     ..
                   cmake --build . --target install/strip --parallel
             - name: Copy OpenSSL and zlib static libraries

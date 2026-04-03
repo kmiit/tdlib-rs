@@ -184,10 +184,12 @@ jobs:
                   git checkout bc3512a509f9d29b37346a7e7e929f9a26e66c7e
                   ./bootstrap-vcpkg.bat
                   if [[ "$RUNNER_ARCH" == "X64" ]]; then
+                    CMAKE_ARCH="x64"
                     VCPKG_TRIPLET_STATIC="x64-windows-static-release"
                     VCPKG_TRIPLET_DYNAMIC="x64-windows-release"
                     ARCH_SUFFIX="x"
                   elif [[ "$RUNNER_ARCH" == "ARM64" ]]; then
+                    CMAKE_ARCH="arm64"
                     VCPKG_TRIPLET_STATIC="arm64-windows-static-release"
                     VCPKG_TRIPLET_DYNAMIC="arm64-windows-release"
                   else
@@ -195,17 +197,17 @@ jobs:
                     exit 1
                   fi
                   printf '%s\n' \
-                      'set(VCPKG_TARGET_ARCHITECTURE x64)' \
+                      'set(VCPKG_TARGET_ARCHITECTURE ${CMAKE_ARCH})' \
                       'set(VCPKG_CRT_LINKAGE dynamic)' \
                       'set(VCPKG_LIBRARY_LINKAGE static)' \
                       'set(VCPKG_BUILD_TYPE release)' \
-                      > triplets/community/x64-windows-static-release.cmake
+                      > triplets/community/${CMAKE_ARCH}-windows-static-release.cmake
                   printf '%s\n' \
-                      'set(VCPKG_TARGET_ARCHITECTURE x64)' \
+                      'set(VCPKG_TARGET_ARCHITECTURE ${CMAKE_ARCH})' \
                       'set(VCPKG_CRT_LINKAGE dynamic)' \
                       'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
                       'set(VCPKG_BUILD_TYPE release)' \
-                      > triplets/community/x64-windows-release.cmake
+                      > triplets/community/${CMAKE_ARCH}-windows-release.cmake
                   ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC # Build only
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC

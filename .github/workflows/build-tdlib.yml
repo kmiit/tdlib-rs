@@ -175,6 +175,7 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
+                  VCPKG_ROOT: /c/vcpkg
               run: |
                   git clone https://github.com/tdlib/td.git
                   cd td
@@ -191,7 +192,7 @@ jobs:
                     echo "Unsupported architecture: $RUNNER_ARCH"
                     exit 1
                   fi
-                  cat << EOF > /c/vcpkg/triplets/community/arm64-windows-release.cmake
+                  cat << EOF > "${VCPKG_ROOT}/triplets/community/arm64-windows-release.cmake"
                   set(VCPKG_TARGET_ARCHITECTURE arm64)
                   set(VCPKG_CRT_LINKAGE dynamic)
                   set(VCPKG_LIBRARY_LINKAGE dynamic)

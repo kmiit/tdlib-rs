@@ -112,7 +112,22 @@ fn generic_build() {
     ];
 
     #[cfg(feature = "static")]
-    let missing_static_libs: Vec<String> = static_libs
+    let static_libs_external = [
+        "ssl",
+        "crypto",
+        "z",
+    ];
+
+    #[cfg(feature = "static")]
+    let all_static_libs: Vec<String> = static_libs
+        .iter()
+        .map(|name| name.to_string())
+        .chain(static_libs_external.iter().map(|name| name.to_string()))
+        .collect();
+
+
+    #[cfg(feature = "static")]
+    let missing_static_libs: Vec<String> = all_static_libs
         .iter()
         .filter_map(|name| {
             let path = if target_os == "windows" {
@@ -150,6 +165,15 @@ fn generic_build() {
 
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:include={include_dir}");
+
+    #[cfg(feature = "static")]
+    for link_name in &static_libs_external {
+        if target_os == "windows" {
+            println!("cargo:rustc-link-lib=static=lib{link_name}");
+        } else {
+            println!("cargo:rustc-link-lib=static={link_name}");
+        }
+    }
     #[cfg(feature = "static")]
     for link_name in &static_libs {
         println!("cargo:rustc-link-lib=static={link_name}");
@@ -160,18 +184,9 @@ fn generic_build() {
         if target_os == "linux" || target_os == "macos" {
             println!("cargo:rustc-link-lib=c++");
             println!("cargo:rustc-link-lib=c++abi");
-            println!("cargo:rustc-link-lib=static=ssl");
-            println!("cargo:rustc-link-lib=static=crypto");
-            println!("cargo:rustc-link-lib=static=z");
         } else if target_os == "android" {
             println!("cargo:rustc-link-lib=static=c++_static");
-            println!("cargo:rustc-link-lib=static=ssl");
-            println!("cargo:rustc-link-lib=static=crypto");
-            println!("cargo:rustc-link-lib=static=z");
         } else if target_os == "windows" {
-            println!("cargo:rustc-link-lib=static=libssl");
-            println!("cargo:rustc-link-lib=static=libcrypto");
-            println!("cargo:rustc-link-lib=static=zlib");
             // Windows system libraries required by TDLib
             println!("cargo:rustc-link-lib=psapi");
             println!("cargo:rustc-link-lib=Normaliz");

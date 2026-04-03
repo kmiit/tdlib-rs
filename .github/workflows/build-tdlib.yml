@@ -201,13 +201,13 @@ jobs:
                       'set(VCPKG_CRT_LINKAGE dynamic)' \
                       'set(VCPKG_LIBRARY_LINKAGE static)' \
                       'set(VCPKG_BUILD_TYPE release)' \
-                      > triplets/community/${CMAKE_ARCH}-windows-static-release.cmake
+                      > triplets/community/${VCPKG_TRIPLET_STATIC}.cmake
                   printf '%s\n' \
                       'set(VCPKG_TARGET_ARCHITECTURE ${CMAKE_ARCH})' \
                       'set(VCPKG_CRT_LINKAGE dynamic)' \
                       'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
                       'set(VCPKG_BUILD_TYPE release)' \
-                      > triplets/community/${CMAKE_ARCH}-windows-release.cmake
+                      > triplets/community/${VCPKG_TRIPLET_DYNAMIC}.cmake
                   ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC # Build only
                   echo "VCPKG_TARGET_ARCHITECTURE=${CMAKE_ARCH}......................."
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
@@ -220,14 +220,13 @@ jobs:
                   cd build
                   cmake -G Ninja \
                       -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
-                      -DCMAKE_BUILD_TYPE=Release \
                       -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake \
                       -DVCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET_DYNAMIC \
                       -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_CXX_FLAGS_RELEASE="/GR- /W4" \ 
                       ..
-                  cmake --build . --target install --parallel --config Release
+                  cmake --build . --target install --parallel
                   cd ..
 
                   # Copy static dependencies to lib

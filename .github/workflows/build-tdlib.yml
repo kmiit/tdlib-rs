@@ -203,13 +203,14 @@ jobs:
                   vcpkg install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
                   cd ..
 
-                  # Build dynamic version
+                  # Build
                   rm -rf build
                   mkdir build
                   cd build
                   cmake -G Ninja \
+                      -DCMAKE_BUILD_TYPE=Release \
                       -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
-                      -DCMAKE_TOOLCHAIN_FILE:FILEPATH=../vcpkg/scripts/buildsystems/vcpkg.cmake \
+                      -DCMAKE_TOOLCHAIN_FILE:FILEPATH="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
                       -DVCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET_DYNAMIC \
                       -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \

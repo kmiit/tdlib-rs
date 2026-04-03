@@ -201,6 +201,8 @@ jobs:
                   vcpkg install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
                   vcpkg install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
 
+                  find "${VCPKG_ROOT}/installed" -maxdepth 4 -not -path '*/.*'
+
                   # Build
                   rm -rf build
                   mkdir build

@@ -175,7 +175,7 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
-                  VCPKG_ROOT: /c/vcpkg
+                  VCPKG_ROOT: "C:\\vcpkg"
                   MSYS_NO_PATHCONV: "1"
               run: |
                   git clone https://github.com/tdlib/td.git

@@ -308,15 +308,11 @@ jobs:
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
-                    -DCMAKE_STRIP=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip \
                     -DOPENSSL_ROOT_DIR=$OPENSSL_ROOT_DIR \
                     -DOPENSSL_INCLUDE_DIR=$OPENSSL_ROOT_DIR/include \
                     -DOPENSSL_CRYPTO_LIBRARY=$OPENSSL_ROOT_DIR/lib/libcrypto.a \
                     -DOPENSSL_SSL_LIBRARY=$OPENSSL_ROOT_DIR/lib/libssl.a \
                     -DTD_ENABLE_JNI=ON \
-                    -DCMAKE_NM=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm \
-                    -DCMAKE_OBJDUMP=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-objdump \
-                    -DCMAKE_RANLIB=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib \
                     ..
                   cmake --build . --target install/strip --parallel
             - name: Copy OpenSSL and zlib static libraries
@@ -326,6 +322,24 @@ jobs:
                   cp $OPENSSL_ROOT_DIR/lib/libssl.a ./td/tdlib/lib/
                   cp $OPENSSL_ROOT_DIR/lib/libcrypto.a ./td/tdlib/lib/
                   cp $NDK_TOOLCHAIN/sysroot/usr/lib/${{ matrix.abi }}-linux-android/libz.a ./td/tdlib/lib/
+            - name: Strip Android artifacts
+              if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
+              run: |
+                  STRIP_TOOL="$NDK_TOOLCHAIN/bin/llvm-strip"
+                  if [ ! -x "$STRIP_TOOL" ]; then
+                    echo "strip tool not found: $STRIP_TOOL"
+                    exit 1
+                  fi
+
+                  # Reduce size of shared objects while preserving runtime-required symbols.
+                  find ./td/tdlib -type f \( -name "*.so" -o -name "*.so.*" \) -print0 | while IFS= read -r -d '' file; do
+                    "$STRIP_TOOL" --strip-unneeded "$file" || true
+                  done
+
+                  # Remove debug symbols from static libraries to keep both static and dynamic packages smaller.
+                  find ./td/tdlib -type f -name "*.a" -print0 | while IFS= read -r -d '' file; do
+                    "$STRIP_TOOL" -g "$file" || true
+                  done
             - name: Save cache TDLib
               uses: actions/cache/save@v4
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'

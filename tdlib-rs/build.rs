@@ -85,7 +85,7 @@ fn generic_build() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let prefix = format!("{out_dir}/tdlib");
     let include_dir = format!("{prefix}/include");
-    let lib_dir = format!("{prefix}/lib")
+    let lib_dir = format!("{prefix}/lib");
     #[cfg(not(feature = "static"))]
     let dynamic_lib_path = match target_os.as_str() {
         "android" => format!("{lib_dir}/libtdjson.so"),

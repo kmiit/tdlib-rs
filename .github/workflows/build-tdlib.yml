@@ -175,6 +175,7 @@ jobs:
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
+                  VCPKG_ROOT: /c/vcpkg
                   MSYS_NO_PATHCONV: "1"
               run: |
                   git clone https://github.com/tdlib/td.git
@@ -209,7 +210,7 @@ jobs:
                       -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_C_FLAGS="/GR- /W4" \
-                      -DCMAKE_CXX_FLAGS="/GR- /W4" \
+                      -DCMAKE_CXX_FLAGS="/W4" \
                       -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                       -DCMAKE_TOOLCHAIN_FILE:FILEPATH="${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" \
                       -DVCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET_DYNAMIC \

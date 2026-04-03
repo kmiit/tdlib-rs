@@ -214,7 +214,7 @@ jobs:
                       -DVCPKG_TARGET_TRIPLET=$VCPKG_TRIPLET_DYNAMIC \
                       -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                       -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                      -DCMAKE_CXX_FLAGS_RELEASE="/GR- /W4" \ 
+                      -DCMAKE_CXX_FLAGS="/W4" \
                       ..
                   cmake --build . --target install --parallel
                   cd ..

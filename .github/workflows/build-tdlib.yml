@@ -219,7 +219,7 @@ jobs:
                   cd ..
 
                   # Copy static dependencies to lib
-                  cp vcpkg/installed/$VCPKG_TRIPLET_STATIC/lib/*.lib tdlib/lib/ 2>/dev/null || true
+                  cp "${VCPKG_ROOT}/installed/$VCPKG_TRIPLET_STATIC/lib/*.lib" tdlib/lib/ 2>/dev/null || true
               shell: bash
             - name: Save cache TDLib
               uses: actions/cache/save@v4

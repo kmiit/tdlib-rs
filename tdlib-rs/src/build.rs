@@ -175,11 +175,11 @@ fn generic_build(lib_path: Option<String>) {
     ];
 
     #[cfg(feature = "static")]
-    let static_libs_external = [
-        "ssl",
-        "crypto",
-        "z",
-    ];
+    let static_libs_external = if target_os == "windows" {
+        ["libssl", "libcrypto", "zlib"]
+    } else {
+        ["ssl", "crypto", "z"]
+    };
 
     #[cfg(feature = "static")]
     let all_static_libs: Vec<String> = static_libs
@@ -260,16 +260,8 @@ fn generic_build(lib_path: Option<String>) {
     println!("cargo:rustc-link-search=native={lib_dir}");
     println!("cargo:include={include_dir}");
     #[cfg(feature = "static")]
-    for link_name in &static_libs {
+    for link_name in &all_static_libs {
         println!("cargo:rustc-link-lib=static={link_name}");
-    }
-    #[cfg(feature = "static")]
-    for link_name in &static_libs_external {
-        if target_os == "windows" {
-            println!("cargo:rustc-link-lib=static=lib{link_name}");
-        } else {
-            println!("cargo:rustc-link-lib=static={link_name}");
-        }
     }
     #[cfg(feature = "static")]
     {

@@ -204,12 +204,12 @@ jobs:
                       'set(VCPKG_LIBRARY_LINKAGE dynamic)' \
                       'set(VCPKG_BUILD_TYPE release)' \
                       > '${VCPKG_ROOT}/triplets/community/${VCPKG_TRIPLET_DYNAMIC}.cmake'
-                  ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC # Build only
+                  vcpkg install gperf:$VCPKG_TRIPLET_DYNAMIC # Build only
                   echo "VCPKG_TARGET_ARCHITECTURE=${CMAKE_ARCH}......................."
                   echo "VCPKG_TRIPLET_STATIC=${VCPKG_TRIPLET_STATIC},$VCPKG_TRIPLET_STATIC......................."
                   echo "VCPKG_TRIPLET_DYNAMIC=${VCPKG_TRIPLET_DYNAMIC}......................."
-                  ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
-                  ./vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
+                  vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
+                  vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
                   cd ..
 
                   # Build dynamic version

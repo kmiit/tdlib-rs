@@ -209,6 +209,7 @@ jobs:
                       'set(VCPKG_BUILD_TYPE release)' \
                       > triplets/community/${CMAKE_ARCH}-windows-release.cmake
                   ./vcpkg.exe install gperf:$VCPKG_TRIPLET_DYNAMIC # Build only
+                  echo "VCPKG_TARGET_ARCHITECTURE=${CMAKE_ARCH}......................."
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_STATIC zlib:$VCPKG_TRIPLET_STATIC
                   ./vcpkg.exe install openssl:$VCPKG_TRIPLET_DYNAMIC zlib:$VCPKG_TRIPLET_DYNAMIC
                   cd ..

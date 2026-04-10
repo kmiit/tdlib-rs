@@ -34,7 +34,7 @@ jobs:
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_DIR: .ccache
                   CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
@@ -98,7 +98,7 @@ jobs:
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_DIR: .ccache
                   CCACHE_MAXSIZE: 512M
               run: |
                   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -168,7 +168,7 @@ jobs:
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_DIR: .ccache
                   CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
@@ -300,7 +300,7 @@ jobs:
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
+                  CCACHE_DIR: .ccache
                   CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update

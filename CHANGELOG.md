@@ -14,11 +14,26 @@ Here we write upgrading notes for brands. It's a team effort to make them as str
 
 ### Fixed
 
+## [1.4.0] - 2026-04-12
+
+### Added
+
+- Static linking support via `static` Cargo feature
+- Android support
+ 
+
+
+
+
+
+
 # [1.3.0] - 2026-02-19
 
 ### Added
 
 Supported TDLib version: 1.8.61.
+
+
 
 # [1.2.0] - 2026-01-31
 

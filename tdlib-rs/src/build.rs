@@ -8,7 +8,7 @@
 #[cfg(not(any(feature = "docs", feature = "pkg-config")))]
 const TDLIB_VERSION: &str = "1.8.61";
 #[cfg(feature = "download-tdlib")]
-const TDLIB_CARGO_PKG_VERSION: &str = "1.3.0";
+const TDLIB_CARGO_PKG_VERSION: &str = "1.4.0";
 
 #[cfg(feature = "download-tdlib")]
 /// Copy all files from a directory to another.

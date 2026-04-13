@@ -33,9 +33,6 @@ jobs:
                 key: ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
@@ -99,9 +96,6 @@ jobs:
                 key: ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
               run: |
                   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   brew install gperf openssl zlib
@@ -170,8 +164,6 @@ jobs:
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
                   VCPKG_ROOT: "C:\\vcpkg"
@@ -301,9 +293,6 @@ jobs:
                   echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade

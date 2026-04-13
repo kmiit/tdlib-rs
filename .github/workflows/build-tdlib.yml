@@ -323,6 +323,7 @@ jobs:
                   cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
                     -DANDROID_ABI=$ANDROID_ABI \
                     -DANDROID_PLATFORM=android-$ANDROID_API \
+                    -DANDROID_STL=c++_shared \
                     -DCMAKE_BUILD_TYPE=Release \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \

@@ -53,6 +53,8 @@ jobs:
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                    -DCMAKE_EXE_LINKER_FLAGS="-unwindlib=libunwind -static-libunwind" \
+                    -DCMAKE_SHARED_LINKER_FLAGS="-unwindlib=libunwind -static-libunwind" \
                     ..
                   cmake --build . --target install --parallel
             - name: Copy OpenSSL and zlib static libraries

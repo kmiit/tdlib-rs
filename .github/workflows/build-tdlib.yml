@@ -31,6 +31,7 @@ jobs:
               with:
                 create-symlink: true
                 key: ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                cache-folder: ${{ github.workspace }}/.ccache
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
@@ -95,6 +96,7 @@ jobs:
               with:
                 create-symlink: true
                 key: ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                cache-folder: ${{ github.workspace }}/.ccache
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
@@ -161,6 +163,7 @@ jobs:
               uses: hendrikmuhs/ccache-action@v1.2
               with:
                 key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                cache-folder: ${{ github.workspace }}/.ccache
             - name: Set up MSVC Developer Command Prompt
               uses: ilammy/msvc-dev-cmd@v1
               with:
@@ -267,6 +270,7 @@ jobs:
               with:
                 create-symlink: true
                 key: ccache-android-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
+                cache-folder: ${{ github.workspace }}/.ccache
             - name: Setup Android NDK
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |

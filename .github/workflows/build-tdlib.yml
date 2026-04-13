@@ -50,8 +50,8 @@ jobs:
                     -DCMAKE_INSTALL_PREFIX:PATH=../tdlib \
                     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                     -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-                    -DCMAKE_EXE_LINKER_FLAGS="-unwindlib=libunwind -static-libunwind" \
-                    -DCMAKE_SHARED_LINKER_FLAGS="-unwindlib=libunwind -static-libunwind" \
+                    -DCMAKE_EXE_LINKER_FLAGS="-Wl,-Bstatic -lunwind -Wl,-Bdynamic" \
+                    -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-Bstatic -lunwind -Wl,-Bdynamic" \
                     ..
                   cmake --build . --target install --parallel
             - name: Copy OpenSSL and zlib static libraries
@@ -79,7 +79,7 @@ jobs:
             matrix:
                 include:
                     - os: macos-latest # arm64 (M1)
-                    - os: macos-26-intel # Intel # macos-13
+                    - os: macos-26-intel # Intel macos-26
         runs-on: ${{ matrix.os }}
         steps:
             - name: Restore cache TDLib

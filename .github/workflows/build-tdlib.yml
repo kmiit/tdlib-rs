@@ -31,12 +31,9 @@ jobs:
               with:
                 create-symlink: true
                 key: ccache-linux-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
-                cache-folder: ${{ github.workspace }}/.ccache
+                max-size: 512M
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
@@ -96,12 +93,9 @@ jobs:
               with:
                 create-symlink: true
                 key: ccache-macos-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
-                cache-folder: ${{ github.workspace }}/.ccache
+                max-size: 512M
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
               run: |
                   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
                   brew install gperf openssl zlib
@@ -163,7 +157,7 @@ jobs:
               uses: hendrikmuhs/ccache-action@v1.2
               with:
                 key: ccache-windows-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
-                cache-folder: ${{ github.workspace }}/.ccache
+                max-size: 512M
             - name: Set up MSVC Developer Command Prompt
               uses: ilammy/msvc-dev-cmd@v1
               with:
@@ -171,8 +165,6 @@ jobs:
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
                   CCACHE_CPP2: "yes"
                   CCACHE_SLOPPINESS: time_macros
                   VCPKG_ROOT: "C:\\vcpkg"
@@ -270,7 +262,7 @@ jobs:
               with:
                 create-symlink: true
                 key: ccache-android-${{ runner.arch == 'ARM64' && 'aarch64' || 'x86_64' }}-${{ env.TDLIB_COMMIT }}
-                cache-folder: ${{ github.workspace }}/.ccache
+                max-size: 512M
             - name: Setup Android NDK
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
               run: |
@@ -303,9 +295,6 @@ jobs:
                   echo "OPENSSL_ROOT_DIR=$(pwd)/openssl-install" >> $GITHUB_ENV
             - name: Build TDLib
               if: steps.cache-tdlib-restore.outputs.cache-hit != 'true'
-              env:
-                  CCACHE_DIR: ${{ github.workspace }}/.ccache
-                  CCACHE_MAXSIZE: 512M
               run: |
                   sudo apt-get update
                   sudo apt-get -y upgrade
